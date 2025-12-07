@@ -30,6 +30,23 @@
     fase3_t3 db ' | _| / _ \\__ \ _|   |_ \\', 0
     fase3_t4 db ' |_| /_/ \_\___/___| |___/', 0
     
+    ; ASCII art para Vencedor (formato scrambleBase)
+    vencedor_msg    db 2 dup(" "),"                                    ",13,10
+                    db 2 dup(" ")," __   __                  _         ",13,10
+                    db 2 dup(" ")," \ \ / /__ _ _  __ ___ __| |___ _ _ ",13,10
+                    db 2 dup(" "),"  \ V / -_) ' \/ _/ -_) _` / _ \ '_|",13,10
+                    db 2 dup(" "),"   \_/\___|_||_\__\___\__,_\___/_|  ",13,10
+                    db 2 dup(" "),"                                    ",13,10
+    vencedor_msg_length equ $-vencedor_msg
+    
+    ; Mensagem de score final
+    final_score_msg db "SCORE FINAL: ",0
+    final_score_msg_length equ $-final_score_msg
+    
+    ; Mensagem para pressionar tecla
+    press_key_msg db "Pressione qualquer tecla",13,10,0
+    press_key_msg_length equ $-press_key_msg
+    
     ; Status
     status_tempo db 'TEMPO: ', 0
     status_fase db 'FASE: ', 0
@@ -78,15 +95,30 @@
                    db 00h,00h,04h,04h,04h,04h,00h,00h
                    db 00h,00h,00h,00h,00h,00h,00h,00h
     
-    ; Sprite alien (8x8 pixels)
-    sprite_alien db 00h,00h,0Dh,0Dh,0Dh,00h,00h,00h
-                 db 00h,0Dh,05h,0Dh,05h,0Dh,00h,00h
-                 db 0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,00h
-                 db 0Dh,05h,0Dh,0Dh,0Dh,05h,0Dh,00h
-                 db 0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,00h
-                 db 00h,0Dh,00h,00h,00h,0Dh,00h,00h
-                 db 00h,0Dh,00h,00h,00h,0Dh,00h,00h
-                 db 00h,00h,00h,00h,00h,00h,00h,00h
+    ; Sprite alien pequeno (8x8 pixels) - para menu
+    sprite_alien_8x8 db 00h,00h,0Dh,0Dh,0Dh,00h,00h,00h
+                     db 00h,0Dh,05h,0Dh,05h,0Dh,00h,00h
+                     db 0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,00h
+                     db 0Dh,05h,0Dh,0Dh,0Dh,05h,0Dh,00h
+                     db 0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,00h
+                     db 00h,0Dh,00h,00h,00h,0Dh,00h,00h
+                     db 00h,0Dh,00h,00h,00h,0Dh,00h,00h
+                     db 00h,00h,00h,00h,00h,00h,00h,00h
+    
+    ; Sprite alien (29x13 pixels) - estilo Scramble
+    sprite_alien db 00h,00h,00h,00h,00h,00h,00h,00h,0Dh,0Dh,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                 db 00h,00h,00h,00h,00h,00h,00h,0Dh,0Dh,0Dh,0Dh,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                 db 00h,00h,00h,00h,00h,00h,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                 db 00h,00h,00h,00h,00h,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                 db 00h,00h,00h,00h,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                 db 0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,00h
+                 db 0Dh,05h,05h,05h,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,00h
+                 db 0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,00h
+                 db 00h,00h,00h,00h,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                 db 00h,00h,00h,00h,00h,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                 db 00h,00h,00h,00h,00h,00h,0Dh,0Dh,0Dh,0Dh,0Dh,0Dh,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                 db 00h,00h,00h,00h,00h,00h,00h,0Dh,0Dh,0Dh,0Dh,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                 db 00h,00h,00h,00h,00h,00h,00h,00h,0Dh,0Dh,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
     
     ; Posições
     nave_x dw 20
@@ -102,6 +134,8 @@
     
     ; Controle de jogo
     score dw 0
+    score_buffer db '00000'
+    score_buffer_len equ $-score_buffer
     vidas db 3
     
     ; Sprite nave pequena para vidas (7x19 pixels)
@@ -126,15 +160,37 @@
     ; Superfície do planeta (altura Y onde começa)
     superficie_y dw 170
     
-    ; Naves alienígenas (fase 1)
+    ; Naves alienígenas (fase 1) e meteoros (fase 2) - usa mesmo sistema
     MAX_ALIENS equ 5
-    aliens_x dw MAX_ALIENS dup(0)
-    aliens_y dw MAX_ALIENS dup(0)
-    aliens_ativo db MAX_ALIENS dup(0)
-    spawn_counter dw 0
+    alien_array_pos dw MAX_ALIENS dup(0)     ; Posição linear (y*320 + x)
+    alien_array_active db MAX_ALIENS dup(0)  ; Status (0=inativo, 1=ativo)
+    alien_spawn_timer dw 0                   ; Timer para spawn
+    alien_spawn_delay dw 60                  ; Frames entre spawns fase 1 (~3 segundos)
+    alien_move_speed dw 1                    ; Velocidade fase 1 (1 pixel por frame)
+    meteor_move_speed dw 2                   ; Velocidade fase 2 (2 pixels por frame)
+    meteor_spawn_delay dw 45                 ; Frames entre spawns fase 2 (~2.5 segundos)
     random_seed dw 0
 
 .code
+; PRINT_STRING usando BIOS int 13h (como scrambleBase)
+; Entrada: BP = offset string, CX = length, BL = color, DH = row, DL = col, ES = segment
+PRINT_STRING proc near
+    push ax
+    push bx
+    push bp
+    
+    mov ah, 13h     ; BIOS Write String
+    mov al, 1       ; Update cursor
+    xor bh, bh      ; Page 0
+    int 10h
+    
+    pop bp
+    pop bx
+    pop ax
+    ret
+PRINT_STRING endp
+
+; escreve_texto - wrapper for compatibility
 escreve_texto proc near
     push ax
     push bx
@@ -293,7 +349,7 @@ desenha_elementos proc near
     ; Desenhar alien (duplicado 2x)
     mov ax, alien_x
     mov bx, 100
-    lea si, sprite_alien
+    lea si, sprite_alien_8x8
     call desenha_sprite_2x
     
     pop si
@@ -633,12 +689,33 @@ desenhar_superficie proc near
     push ax
     push bx
     push cx
+    push dx
     push di
     push es
     
     mov ax, 0A000h
     mov es, ax
     
+    ; Escolher cor baseada na fase
+    mov al, fase_atual
+    cmp al, 1
+    je cor_fase1
+    cmp al, 2
+    je cor_fase2
+    cmp al, 3
+    je cor_fase3
+    jmp cor_fase1       ; Padrão: fase 1
+    
+cor_fase1:
+    mov dl, 02h         ; Verde escuro
+    jmp desenha_surf
+cor_fase2:
+    mov dl, 05h         ; Roxo/Magenta escuro
+    jmp desenha_surf
+cor_fase3:
+    mov dl, 04h         ; Vermelho escuro
+    
+desenha_surf:
     ; Desenhar linha de superfície
     mov bx, superficie_y
     mov cx, 200
@@ -649,13 +726,15 @@ loop_surf:
     
     ; Calcular offset da linha
     mov ax, bx
+    push dx
     mov dx, 320
     mul dx
     mov di, ax
+    pop dx
     
-    ; Desenhar linha toda verde escuro (02h)
+    ; Desenhar linha toda com a cor da fase
     mov cx, 320
-    mov al, 02h
+    mov al, dl      ; Usa a cor escolhida
     rep stosb
     
     inc bx
@@ -664,6 +743,7 @@ loop_surf:
     
     pop es
     pop di
+    pop dx
     pop cx
     pop bx
     pop ax
@@ -1028,58 +1108,63 @@ fim_char:
 desenha_char_pixel endp
 
 ; Gerar número pseudo-aleatório
-; Retorna AX com valor aleatório
+; Retorna AX com valor aleatório (0-65535)
 random proc near
     push bx
-    push cx
     push dx
     
     mov ax, random_seed
     mov bx, 25173
-    mul bx
+    mul bx              ; DX:AX = random_seed * 25173
     add ax, 13849
     mov random_seed, ax
     
     pop dx
-    pop cx
     pop bx
     ret
 random endp
 
-; Spawnar nova nave alienígena
+; Spawnar nova nave alienígena (padrão scrambleBase)
 spawn_alien proc near
     push ax
     push bx
     push cx
     push dx
     
-    ; Procurar slot livre
+    ; Procurar slot livre nos 5 aliens
     mov cx, MAX_ALIENS
     xor bx, bx
     
 procura_slot_alien:
-    cmp byte ptr aliens_ativo[bx], 0
+    cmp byte ptr alien_array_active[bx], 0
     je slot_alien_livre
     inc bx
     loop procura_slot_alien
     jmp fim_spawn_alien
     
 slot_alien_livre:
-    ; Ativar alien
-    mov byte ptr aliens_ativo[bx], 1
+    ; BX contém o índice do slot livre (0-4)
+    push bx
     
-    ; Posição X: começa na direita (320)
-    shl bx, 1
-    mov aliens_x[bx], 320
-    
-    ; Posição Y: aleatória entre Y=10 (após status) e Y=150 (antes da superfície)
+    ; Gera Y aleatório entre 20-130 (área segura abaixo do HUD)
     call random
     xor dx, dx
-    mov cx, 140     ; Range de 140 pixels (150 - 10)
-    div cx
-    add dx, 10      ; Adiciona offset mínimo
-    mov aliens_y[bx], dx
-    shr bx, 1
+    mov cx, 110         ; Divisor (130-20=110)
+    div cx              ; DX = resto (0-109)
+    mov ax, dx
+    add ax, 20          ; Y entre 20-129
+    
+    ; Calcula posição linear: Y*320 + X
+    ; X = 298 (320-22=298, garante sprite visível no lado direito)
+    mov cx, 320
+    mul cx              ; AX = Y * 320
+    add ax, 298         ; Adiciona X=298
+    
+    ; Ativa alien no slot
+    pop bx
+    mov byte ptr alien_array_active[bx], 1
+    shl bx, 1           ; BX *= 2 para word array
+    mov word ptr alien_array_pos[bx], ax
     
 fim_spawn_alien:
     pop dx
@@ -1089,48 +1174,106 @@ fim_spawn_alien:
     ret
 spawn_alien endp
 
-; Mover naves alienígenas
+; Mover naves alienígenas (padrão scrambleBase)
 move_aliens proc near
     push ax
     push bx
     push cx
+    push dx
     
     mov cx, MAX_ALIENS
     xor bx, bx
     
 loop_move_aliens:
-    cmp byte ptr aliens_ativo[bx], 0
+    cmp byte ptr alien_array_active[bx], 0
     je prox_alien
     
-    ; Mover alien para esquerda
+    ; Pega posição do alien (BX * 2 para word array)
     push bx
     shl bx, 1
-    mov ax, aliens_x[bx]
-    sub ax, 2       ; Velocidade: 2 pixels por frame
+    mov ax, word ptr alien_array_pos[bx]
+    pop bx
     
-    ; Desativar se saiu da tela (X < -16, considerando tamanho do sprite)
-    cmp ax, 0FFF0h  ; Verifica se ficou muito negativo (< -16 em word sem sinal)
-    jae desativa_alien  ; Se AX >= FFF0h (muito grande em unsigned = negativo em signed)
+    ; Converte posição linear para X,Y
+    push ax
+    push bx
+    xor dx, dx
+    mov bx, 320
+    div bx              ; AX = Y, DX = X
+    pop bx
     
-    mov aliens_x[bx], ax
-    shr bx, 1
+    ; Verifica se X < 2 (saiu da tela à esquerda)
+    cmp dx, 2
+    pop ax              ; Recupera posição original
+    jb desativa_alien
+    
+    ; Move para esquerda (velocidade baseada na fase)
+    push bx
+    mov bx, alien_move_speed         ; Padrão: fase 1 (1 pixel)
+    cmp fase_atual, 2
+    jne aplica_velocidade
+    mov bx, meteor_move_speed        ; Fase 2: 2 pixels (meteoros mais rápidos)
+    
+aplica_velocidade:
+    sub ax, bx
+    pop bx
+    
+    ; Salva nova posição
+    push bx
+    shl bx, 1
+    mov word ptr alien_array_pos[bx], ax
+    pop bx
     jmp prox_alien
     
 desativa_alien:
-    shr bx, 1
-    mov byte ptr aliens_ativo[bx], 0
+    mov byte ptr alien_array_active[bx], 0
     
 prox_alien:
     inc bx
     loop loop_move_aliens
     
+    pop dx
     pop cx
     pop bx
     pop ax
     ret
 move_aliens endp
 
-; Desenhar naves alienígenas
+; Atualizar sistema de aliens/meteoros (movimento + spawn automático)
+update_aliens_system proc near
+    push ax
+    push bx
+    push dx
+    
+    ; Incrementa timer de spawn
+    inc alien_spawn_timer
+    
+    ; Escolhe delay baseado na fase
+    mov ax, alien_spawn_timer
+    mov dx, alien_spawn_delay        ; Padrão: fase 1 (60 frames)
+    cmp fase_atual, 2
+    jne verifica_spawn
+    mov dx, meteor_spawn_delay       ; Fase 2: 45 frames (~2.5 seg)
+    
+verifica_spawn:
+    cmp ax, dx
+    jb update_aliens_movimento
+    
+    ; Reset timer e spawna novo alien/meteoro
+    mov alien_spawn_timer, 0
+    call spawn_alien
+    
+update_aliens_movimento:
+    ; Move aliens/meteoros existentes
+    call move_aliens
+    
+    pop dx
+    pop bx
+    pop ax
+    ret
+update_aliens_system endp
+
+; Desenhar naves alienígenas (padrão scrambleBase)
 desenha_aliens proc near
     push ax
     push bx
@@ -1142,30 +1285,80 @@ desenha_aliens proc near
     xor bx, bx
     
 loop_des_aliens:
-    cmp byte ptr aliens_ativo[bx], 0
+    cmp byte ptr alien_array_active[bx], 0
     je prox_des_alien
     
-    ; Carregar posição do alien
+    ; Pega posição linear do alien
     push bx
     push cx
     shl bx, 1
-    mov ax, aliens_x[bx]
-    mov dx, aliens_y[bx]
+    mov ax, word ptr alien_array_pos[bx]
+    shr bx, 1
     
-    ; Verificar limites da tela (X entre 0 e 304, Y entre 10 e 184)
-    cmp ax, 0
+    ; Converte posição linear para X,Y
+    push bx
+    xor dx, dx
+    mov bx, 320
+    div bx              ; AX = Y, DX = X
+    pop bx
+    
+    ; Verifica limites da tela
+    ; X deve estar entre 0 e 291 (para aliens 29px) ou 0-312 (para meteoros 8px)
+    cmp dx, 0
     jl pula_desenho_alien
-    cmp ax, 304         ; 320 - 16 (tamanho sprite)
+    cmp fase_atual, 2
+    je verifica_limite_meteoro
+    cmp dx, 291         ; Aliens: 320 - 29
     jg pula_desenho_alien
-    cmp dx, 10
-    jl pula_desenho_alien
-    cmp dx, 184         ; 200 - 16 (tamanho sprite)
+    jmp verifica_y
+verifica_limite_meteoro:
+    cmp dx, 312         ; Meteoros: 320 - 8
     jg pula_desenho_alien
     
-    ; Desenhar alien (sprite duplicado 2x = 16x16)
-    mov bx, dx          ; BX = Y
+verifica_y:
+    ; Y deve estar entre 10 e 157 (para aliens 13px) ou 10-192 (para meteoros 8px)
+    cmp ax, 10
+    jl pula_desenho_alien
+    cmp fase_atual, 2
+    je verifica_y_meteoro
+    cmp ax, 157         ; Aliens: 170 - 13
+    jg pula_desenho_alien
+    jmp converte_posicao
+verifica_y_meteoro:
+    cmp ax, 192         ; Meteoros: 200 - 8
+    jg pula_desenho_alien
+    
+converte_posicao:
+    ; Converte Y,X para posição linear para desenho
+    push dx             ; Salva X
+    mov dx, 320
+    mul dx              ; AX = Y * 320
+    pop dx              ; Recupera X
+    add ax, dx          ; AX = Y*320 + X (posição linear)
+    
+    ; Desenha alien (sprite 29x13)
+    mov bx, ax          ; BX recebe Y para desenha_sprite_29x13
+    ; Mas desenha_sprite_29x13 espera AX=X, BX=Y separados
+    ; Vamos reconverter
+    xor dx, dx
+    mov cx, 320
+    div cx              ; AX = Y, DX = X
+    mov bx, ax          ; BX = Y
+    mov ax, dx          ; AX = X
+    
+    ; Escolhe sprite baseado na fase
+    cmp fase_atual, 2
+    je desenha_meteoro_fase2
+    
+    ; Fases 1 e 3: desenha alien (sprite 29x13)
     lea si, sprite_alien
-    call desenha_sprite_2x
+    call desenha_sprite_29x13
+    jmp pula_desenho_alien
+    
+desenha_meteoro_fase2:
+    ; Fase 2: desenha meteoro (sprite 8x8)
+    lea si, sprite_meteoro
+    call desenha_sprite
     
 pula_desenho_alien:
     pop cx
@@ -1182,6 +1375,106 @@ prox_des_alien:
     pop ax
     ret
 desenha_aliens endp
+
+; Exibir tela de vitória (formato scrambleBase)
+exibir_vitoria proc near
+    push ax
+    push bx
+    push cx
+    push dx
+    push si
+    push es
+    push bp
+    
+    call limpar_tela
+    
+    ; Aguardar um pouco
+    xor cx, cx
+    mov dx, 2710H
+    mov ah, 86H
+    int 15h
+    
+    ; Configura ES para apontar para o segmento de dados
+    mov ax, ds 
+    mov es, ax
+    
+    ; Exibe mensagem Vencedor em verde (linha 5)
+    mov bp, offset vencedor_msg
+    mov cx, vencedor_msg_length
+    mov bl, 0Ah     ; Verde claro
+    mov dh, 5       ; Linha 5
+    mov dl, 0       ; Coluna 0
+    call PRINT_STRING
+    
+    ; Exibe "SCORE FINAL:" em branco (linha 12, coluna 10)
+    mov bp, offset final_score_msg
+    mov cx, final_score_msg_length
+    mov bl, 0Fh     ; Branco
+    mov dh, 12
+    mov dl, 10
+    call PRINT_STRING
+    
+    ; Converte score para string
+    mov ax, score
+    mov si, offset score_buffer + 4  ; Final do buffer
+    mov cx, 5                        ; 5 dígitos
+    call converte_numero_5dig
+    
+    ; Exibe score em amarelo (linha 12, coluna 23 após "SCORE FINAL: ")
+    mov bp, offset score_buffer
+    mov cx, 5
+    mov bl, 0Eh     ; Amarelo
+    mov dh, 12
+    mov dl, 23
+    call PRINT_STRING
+    
+    ; Exibe mensagem para pressionar tecla (linha 18)
+    mov bp, offset press_key_msg
+    mov cx, press_key_msg_length
+    mov bl, 0Fh     ; Branco
+    mov dh, 18
+    mov dl, 5
+    call PRINT_STRING
+    
+    ; Aguarda tecla (dupla leitura para limpar buffer)
+    xor ah, ah
+    int 16h
+    xor ah, ah
+    int 16h
+    
+    call limpar_tela
+    
+    pop bp
+    pop es
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+exibir_vitoria endp
+
+; Converte número de 5 dígitos para string
+; AX = número, SI = final do buffer, CX = quantidade de dígitos
+converte_numero_5dig proc near
+    push ax
+    push bx
+    push dx
+    
+loop_conv:
+    xor dx, dx
+    mov bx, 10
+    div bx          ; AX = AX/10, DX = resto
+    add dl, '0'     ; Converte para ASCII
+    mov [si], dl    ; Armazena no buffer
+    dec si
+    loop loop_conv
+    
+    pop dx
+    pop bx
+    pop ax
+    ret
+converte_numero_5dig endp
 
 ; Loop principal de uma fase
 ; Retorna AL = 0 se tempo esgotou, 1 se passou de fase
@@ -1204,6 +1497,25 @@ executar_fase proc near
     mov al, TEMPO_FASE
     mov tempo_restante, al
     mov ticks_contador, 0
+    
+    ; Inicializar sistema de aliens
+    mov cx, MAX_ALIENS
+    xor bx, bx
+limpar_aliens_init:
+    mov byte ptr alien_array_active[bx], 0
+    shl bx, 1
+    mov word ptr alien_array_pos[bx], 0
+    shr bx, 1
+    inc bx
+    loop limpar_aliens_init
+    
+    ; Inicializar seed aleatório
+    mov ah, 00h
+    int 1Ah
+    mov random_seed, dx
+    
+    ; Reset timer de spawn
+    mov alien_spawn_timer, 0
     
 loop_fase:
     ; Limpar apenas área de jogo (não redesenhar tudo)
@@ -1234,6 +1546,9 @@ loop_fase:
     mov bx, nave_jogador_y
     lea si, sprite_nave
     call desenha_sprite_29x13
+    
+    ; Desenhar aliens
+    call desenha_aliens
     
     ; Desenhar sprites de vidas no centro (entre score e time)
     ; Primeira vida
@@ -1420,15 +1735,38 @@ loop_fase:
 delay_fase:
     loop delay_fase
     
+    ; Atualizar sistema de aliens (movimento + spawn automático)
+    call update_aliens_system
+    
     ; Atualizar contador de tempo
     inc ticks_contador
     mov ax, ticks_contador
     cmp ax, 18
     jl check_tecla_fase
     
-    ; 1 segundo passou - adicionar 10 pontos e decrementar tempo
+    ; 1 segundo passou - adicionar pontos baseado na fase e decrementar tempo
     mov ticks_contador, 0
-    add score, 10
+    
+    ; Escolhe pontuação baseada na fase
+    mov al, fase_atual
+    cmp al, 1
+    je pontos_fase1
+    cmp al, 2
+    je pontos_fase2
+    cmp al, 3
+    je pontos_fase3
+    jmp pontos_fase1    ; Padrão: fase 1
+    
+pontos_fase1:
+    add score, 10       ; Fase 1: +10 pontos/segundo
+    jmp atualiza_tempo
+pontos_fase2:
+    add score, 15       ; Fase 2: +15 pontos/segundo
+    jmp atualiza_tempo
+pontos_fase3:
+    add score, 20       ; Fase 3: +20 pontos/segundo
+    
+atualiza_tempo:
     dec tempo_restante
     
     ; Verificar se tempo acabou
@@ -1532,7 +1870,8 @@ voltar_menu:
     ret
     
 fim_jogo:
-    ; TODO: tela de vitória
+    ; Exibir tela de vitória
+    call exibir_vitoria
     xor al, al
     pop dx
     pop cx
