@@ -1376,6 +1376,96 @@ prox_des_alien:
     ret
 desenha_aliens endp
 
+; Checa colisao simples entre o jogador e aliens/meteoros
+; Retorna AX = 1 se houve colisao, 0 caso contrario
+checa_colisao_jogador proc near
+    push bx
+    push cx
+    push dx
+    push si
+    push di
+    push bp
+
+    ; Largura/altura dos inimigos de acordo com a fase
+    mov bp, 29              ; Largura padrao (aliens)
+    mov dx, 13              ; Altura padrao (aliens)
+    cmp fase_atual, 2
+    jne dimensao_ok
+    mov bp, 8               ; Meteoro 8x8 na fase 2
+    mov dx, 8
+dimensao_ok:
+    mov di, dx              ; Guardar altura do inimigo
+
+    mov cx, MAX_ALIENS
+    xor si, si              ; SI = indice
+    xor ax, ax              ; AX = flag de colisao (0)
+
+loop_colisao:
+    cmp byte ptr alien_array_active[si], 0
+    je proximo_inimigo
+
+    ; Pega posicao linear e converte para X,Y
+    push si
+    shl si, 1
+    mov ax, word ptr alien_array_pos[si]
+    shr si, 1
+    xor dx, dx
+    mov bx, 320
+    div bx                  ; AX = inimigo_y, DX = inimigo_x
+    mov bx, dx              ; BX = inimigo_x
+    mov dx, ax              ; DX = inimigo_y
+    pop si
+
+    ; Teste de interseccao AABB (player 29x13)
+    ; Verifica eixo X
+    mov ax, bx              ; inimigo_x
+    add ax, bp              ; inimigo_x + largura
+    cmp nave_jogador_x, ax
+    jge proximo_inimigo
+
+    mov ax, nave_jogador_x
+    add ax, 29              ; player_x + largura
+    cmp bx, ax
+    jge proximo_inimigo
+
+    ; Verifica eixo Y
+    mov ax, dx              ; inimigo_y
+    add ax, di              ; inimigo_y + altura
+    mov si, nave_jogador_y
+    cmp si, ax
+    jge proximo_inimigo
+
+    mov ax, nave_jogador_y
+    add ax, 13              ; player_y + altura
+    cmp dx, ax              ; dx = inimigo_y
+    jge proximo_inimigo
+
+    ; Colisao detectada
+    cmp byte ptr vidas, 0
+    je salva_estado
+    dec vidas
+salva_estado:
+    mov byte ptr alien_array_active[si], 0
+    mov nave_jogador_x, 40
+    mov nave_jogador_y, 80
+    mov ax, 1               ; flag de colisao
+    jmp fim_colisao
+
+proximo_inimigo:
+    inc si
+    loop loop_colisao
+    xor ax, ax              ; Nenhuma colisao
+
+fim_colisao:
+    pop bp
+    pop di
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    ret
+checa_colisao_jogador endp
+
 ; Exibir tela de vitória (formato scrambleBase)
 exibir_vitoria proc near
     push ax
@@ -1551,23 +1641,18 @@ loop_fase:
     call desenha_aliens
     
     ; Desenhar sprites de vidas no centro (entre score e time)
-    ; Primeira vida
-    mov ax, 120
-    mov bx, 1
+    mov cl, vidas
+    cmp cl, 0
+    jle vidas_fim
+    mov ax, 120            ; X inicial
+    mov bx, 1              ; Y fixo
     lea si, sprite_nave_8x8
+desenha_vidas_loop:
     call desenha_sprite
-    
-    ; Segunda vida
-    mov ax, 130
-    mov bx, 1
-    lea si, sprite_nave_8x8
-    call desenha_sprite
-    
-    ; Terceira vida
-    mov ax, 140
-    mov bx, 1
-    lea si, sprite_nave_8x8
-    call desenha_sprite
+    add ax, 10             ; Espaçamento entre ícones
+    dec cl
+    jg desenha_vidas_loop
+vidas_fim:
     
     ; Desenhar score e tempo como texto no topo
     push ax
@@ -1737,6 +1822,15 @@ delay_fase:
     
     ; Atualizar sistema de aliens (movimento + spawn automático)
     call update_aliens_system
+
+    ; Checar colisao entre nave e inimigos
+    call checa_colisao_jogador
+    cmp ax, 0
+    je sem_colisao_jogador
+    cmp byte ptr vidas, 0
+    ja sem_colisao_jogador
+    jmp voltar_menu
+sem_colisao_jogador:
     
     ; Atualizar contador de tempo
     inc ticks_contador
