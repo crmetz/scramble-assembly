@@ -172,6 +172,11 @@
     random_seed dw 0
 
 .code
+;----------------------------------------------------------------
+; Função: Escreve uma string de tamanho fixo usando a BIOS (modo 13h).
+; Parâmetros de entrada: BP=offset da string, CX=tamanho em bytes, BL=cor, DH=linha, DL=coluna, ES=segmento do texto.
+; Parâmetros de saída: Nenhum. Apenas escreve na tela e atualiza o cursor via BIOS.
+;----------------------------------------------------------------
 ; PRINT_STRING usando BIOS int 13h (como scrambleBase)
 ; Entrada: BP = offset string, CX = length, BL = color, DH = row, DL = col, ES = segment
 PRINT_STRING proc near
@@ -190,6 +195,11 @@ PRINT_STRING proc near
     ret
 PRINT_STRING endp
 
+;----------------------------------------------------------------
+; Função: Imprime string terminada em zero na posição de cursor indicada usando BIOS 10h.
+; Parâmetros de entrada: DH=linha inicial, DL=coluna inicial, SI=ponteiro para string ASCIIZ, BL=cor do texto (página 0).
+; Parâmetros de saída: Nenhum. Cursor é avançado conforme o texto renderizado.
+;----------------------------------------------------------------
 ; escreve_texto - wrapper for compatibility
 escreve_texto proc near
     push ax
@@ -227,6 +237,11 @@ fim_texto:
     ret
 escreve_texto endp
 
+;----------------------------------------------------------------
+; Função: Desenha o menu principal destacando a opção selecionada.
+; Parâmetros de entrada: usa variável global opcao_sel para definir o destaque; requer DS apontando para os dados do menu.
+; Parâmetros de saída: Nenhum. Apenas renderiza o menu no vídeo em modo texto BIOS.
+;----------------------------------------------------------------
 desenha_menu proc near
     push ax
     push bx
@@ -282,6 +297,11 @@ des_s:
     ret
 desenha_menu endp
 
+;----------------------------------------------------------------
+; Função: Atualiza posições horizontais de nave, meteoro e alien do menu com movimento oscilante.
+; Parâmetros de entrada: Nenhum explícito; usa variáveis globais nave_x, meteoro_x, alien_x e alien_dir.
+; Parâmetros de saída: Nenhum. Somente altera as posições globais para o próximo frame.
+;----------------------------------------------------------------
 move_elementos proc near
     push ax
     
@@ -326,6 +346,11 @@ save_a:
     ret
 move_elementos endp
 
+;----------------------------------------------------------------
+; Função: Desenha os elementos animados do menu (nave, meteoro, alien) em modo gráfico.
+; Parâmetros de entrada: Variáveis globais de posição (nave_x, meteoro_x, alien_x) e sprites associados.
+; Parâmetros de saída: Nenhum. Apenas escreve os sprites na memória de vídeo.
+;----------------------------------------------------------------
 desenha_elementos proc near
     push ax
     push bx
@@ -361,6 +386,11 @@ desenha_elementos proc near
     ret
 desenha_elementos endp
 
+;----------------------------------------------------------------
+; Função: Desenha um sprite 8x8 expandido para 16x16 na tela.
+; Parâmetros de entrada: AX=posição X, BX=posição Y, SI=endereço do sprite 8x8.
+; Parâmetros de saída: Nenhum. Pixels são escritos diretamente na memória de vídeo (modo 13h).
+;----------------------------------------------------------------
 ; Desenhar sprite 8x8 ampliado 2x (fica 16x16)
 ; AX = posição X, BX = posição Y, SI = endereço do sprite
 desenha_sprite_2x proc near
@@ -438,6 +468,11 @@ skip_pixel_2x:
     ret
 desenha_sprite_2x endp
 
+;----------------------------------------------------------------
+; Função: Desenha sprite 29x13 (nave do jogador) no modo 13h.
+; Parâmetros de entrada: AX=posição X, BX=posição Y, SI=endereço do sprite 29x13.
+; Parâmetros de saída: Nenhum. Apenas altera a memória de vídeo.
+;----------------------------------------------------------------
 ; Desenhar sprite 29x13 (para nave jogador)
 ; AX = posição X, BX = posição Y, SI = endereço do sprite
 desenha_sprite_29x13 proc near
@@ -497,6 +532,11 @@ skip_pixel_29x13:
     ret
 desenha_sprite_29x13 endp
 
+;----------------------------------------------------------------
+; Função: Desenha sprite 8x8 no modo 13h sem escalonamento.
+; Parâmetros de entrada: AX=posição X, BX=posição Y, SI=endereço do sprite 8x8.
+; Parâmetros de saída: Nenhum. Escreve pixels na VRAM.
+;----------------------------------------------------------------
 ; Desenhar sprite 8x8
 ; AX = posição X, BX = posição Y, SI = endereço do sprite
 desenha_sprite proc near
@@ -556,6 +596,11 @@ skip_pixel:
     ret
 desenha_sprite endp
 
+;----------------------------------------------------------------
+; Função: Limpa os elementos animados do menu desenhando preto sobre suas áreas.
+; Parâmetros de entrada: Usa posições globais nave_x, meteoro_x e alien_x; assume modo 13h ativo.
+; Parâmetros de saída: Nenhum. Apenas escreve zeros na VRAM.
+;----------------------------------------------------------------
 apaga_elementos proc near
     push ax
     push bx
@@ -594,6 +639,11 @@ apaga_elementos proc near
     ret
 apaga_elementos endp
 
+;----------------------------------------------------------------
+; Função: Apaga um bloco quadrado de tamanho variável na tela (modo 13h).
+; Parâmetros de entrada: AX=posição X, BX=posição Y, CX=lado do quadrado; ES deve apontar para 0A000h.
+; Parâmetros de saída: Nenhum. Região é preenchida com cor 0.
+;----------------------------------------------------------------
 ; Apagar sprite de tamanho variável
 ; AX = posição X, BX = posição Y, CX = tamanho (largura e altura)
 apaga_sprite_tamanho proc near
@@ -640,6 +690,11 @@ loop_apaga_x_tam:
     ret
 apaga_sprite_tamanho endp
 
+;----------------------------------------------------------------
+; Função: Apaga um sprite 8x8 na posição informada.
+; Parâmetros de entrada: AX=posição X, BX=posição Y; ES deve estar apontando para a VRAM 0A000h.
+; Parâmetros de saída: Nenhum. Área é zerada.
+;----------------------------------------------------------------
 ; Apagar sprite 8x8
 ; AX = posição X, BX = posição Y
 apaga_sprite proc near
@@ -684,6 +739,11 @@ loop_apaga_x:
     ret
 apaga_sprite endp
 
+;----------------------------------------------------------------
+; Função: Desenha a superfície do planeta do HUD até o fim da tela com cor dependente da fase.
+; Parâmetros de entrada: Usa fase_atual para escolher cor e superficie_y para posição inicial.
+; Parâmetros de saída: Nenhum. Preenche linhas na VRAM.
+;----------------------------------------------------------------
 ; Desenhar superfície do planeta
 desenhar_superficie proc near
     push ax
@@ -750,6 +810,11 @@ loop_surf:
     ret
 desenhar_superficie endp
 
+;----------------------------------------------------------------
+; Função: Limpa toda a tela em modo 13h preenchendo com cor 0.
+; Parâmetros de entrada: Nenhum.
+; Parâmetros de saída: Nenhum. VRAM é zerada.
+;----------------------------------------------------------------
 ; Limpar tela mantendo modo 13h
 limpar_tela proc near
     push ax
@@ -771,6 +836,11 @@ limpar_tela proc near
     ret
 limpar_tela endp
 
+;----------------------------------------------------------------
+; Função: Mostra a apresentação textual da fase e aguarda alguns segundos.
+; Parâmetros de entrada: AL=número da fase (1,2,3) para escolher arte e cor.
+; Parâmetros de saída: Nenhum. Apenas desenha texto e faz delay.
+;----------------------------------------------------------------
 ; Exibir apresentação de fase
 ; AL = número da fase (1, 2 ou 3)
 exibir_apresentacao proc near
@@ -885,6 +955,11 @@ fim_apres:
     ret
 exibir_apresentacao endp
 
+;----------------------------------------------------------------
+; Função: (Placeholder) deveria desenhar barra de status; atualmente retorna imediatamente.
+; Parâmetros de entrada: Nenhum.
+; Parâmetros de saída: Nenhum. Não realiza operações.
+;----------------------------------------------------------------
 ; Desenhar barra de status (simplificada - apenas texto via BIOS)
 desenhar_status proc near
     pop di
@@ -896,6 +971,11 @@ desenhar_status proc near
     ret
 desenhar_status endp
 
+;----------------------------------------------------------------
+; Função: Imprime número decimal de 5 dígitos no cursor atual via BIOS.
+; Parâmetros de entrada: AX=valor a ser impresso; utiliza página 0 de vídeo.
+; Parâmetros de saída: Nenhum. Cursor avança após cada dígito.
+;----------------------------------------------------------------
 ; Desenhar número de 5 dígitos
 ; AX = número
 desenha_numero_5dig proc near
@@ -954,6 +1034,11 @@ loop_dig:
     ret
 desenha_numero_5dig endp
 
+;----------------------------------------------------------------
+; Função: Desenha sprite de vida 7x19 na tela em modo 13h.
+; Parâmetros de entrada: AX=posição X, DX=posição Y, SI=endereço do sprite de vida.
+; Parâmetros de saída: Nenhum. Pixels são escritos na VRAM.
+;----------------------------------------------------------------
 ; Desenhar sprite de vida (7x19)
 ; AX = posição X, DX = posição Y, SI = endereço do sprite
 desenha_sprite_vida proc near
@@ -1015,6 +1100,11 @@ skip_vida_pixel:
     ret
 desenha_sprite_vida endp
 
+;----------------------------------------------------------------
+; Função: Limpa a região reservada para exibir as vidas na barra de status.
+; Parâmetros de entrada: Nenhum. Usa posições fixas e assume modo 13h.
+; Parâmetros de saída: Nenhum. Área é preenchida com 0.
+;----------------------------------------------------------------
 ; Apagar área de vidas na barra de status
 apaga_vidas_display proc near
     push ax
@@ -1067,6 +1157,11 @@ apaga_vidas_pixel:
     ret
 apaga_vidas_display endp
 
+;----------------------------------------------------------------
+; Função: Desenha os ícones de vidas restantes na barra de status.
+; Parâmetros de entrada: Usa variável global vidas; posicionamento fixo em X=120, Y=1.
+; Parâmetros de saída: Nenhum. Apenas renderiza sprites na VRAM.
+;----------------------------------------------------------------
 ; Desenhar sprites de vidas na barra de status
 desenhar_vidas proc near
     push ax
@@ -1094,6 +1189,11 @@ desenhar_vidas_fim:
     ret
 desenhar_vidas endp
 
+;----------------------------------------------------------------
+; Função: Desenha caracteres simples (letra ou dígito) como blocos 3x5 pixels.
+; Parâmetros de entrada: AX=X, BX=Y, CL=código ASCII do caractere, CH=cor do pixel.
+; Parâmetros de saída: Nenhum. Pixels são escritos no segmento de vídeo 0A000h.
+;----------------------------------------------------------------
 ; Desenhar letra/número simples 3x5 como pixels
 ; AX = X, BX = Y, CL = caractere ASCII, CH = cor
 desenha_char_pixel proc near
@@ -1186,6 +1286,11 @@ fim_char:
     ret
 desenha_char_pixel endp
 
+;----------------------------------------------------------------
+; Função: Gera número pseudo-aleatório de 16 bits via LCG e atualiza a seed.
+; Parâmetros de entrada: random_seed contém o valor atual da semente.
+; Parâmetros de saída: AX=novo valor pseudo-aleatório; random_seed é atualizado.
+;----------------------------------------------------------------
 ; Gerar número pseudo-aleatório
 ; Retorna AX com valor aleatório (0-65535)
 random proc near
@@ -1203,6 +1308,11 @@ random proc near
     ret
 random endp
 
+;----------------------------------------------------------------
+; Função: Cria um novo inimigo (alien/meteoro) no array caso haja slot livre.
+; Parâmetros de entrada: Usa MAX_ALIENS, alien_array_active/pos, fase_atual para posicionamento; random_seed para sortear Y.
+; Parâmetros de saída: Nenhum. Atualiza arrays de estado e posição quando um slot livre é encontrado.
+;----------------------------------------------------------------
 ; Spawnar nova nave alienígena (padrão scrambleBase)
 spawn_alien proc near
     push ax
@@ -1253,6 +1363,11 @@ fim_spawn_alien:
     ret
 spawn_alien endp
 
+;----------------------------------------------------------------
+; Função: Move todas as entidades ativas (aliens/meteoros) para a esquerda e desativa as que saem da tela.
+; Parâmetros de entrada: Usa arrays alien_array_active/pos e velocidades alien_move_speed/meteor_move_speed; depende de fase_atual.
+; Parâmetros de saída: Nenhum. Atualiza posições e flags de atividade nos arrays.
+;----------------------------------------------------------------
 ; Mover naves alienígenas (padrão scrambleBase)
 move_aliens proc near
     push ax
@@ -1318,6 +1433,11 @@ prox_alien:
     ret
 move_aliens endp
 
+;----------------------------------------------------------------
+; Função: Atualiza o sistema de inimigos realizando spawn periódico e movimento por frame.
+; Parâmetros de entrada: fase_atual define o delay de spawn; alien_spawn_timer/delay e meteor_spawn_delay controlam temporização.
+; Parâmetros de saída: Nenhum. Pode ativar novos inimigos e mover os existentes.
+;----------------------------------------------------------------
 ; Atualizar sistema de aliens/meteoros (movimento + spawn automático)
 update_aliens_system proc near
     push ax
@@ -1352,6 +1472,11 @@ update_aliens_movimento:
     ret
 update_aliens_system endp
 
+;----------------------------------------------------------------
+; Função: Desenha todos os inimigos ativos (aliens ou meteoros) conforme a fase.
+; Parâmetros de entrada: Arrays alien_array_pos/active, fase_atual para escolher sprite; usa modo 13h.
+; Parâmetros de saída: Nenhum. Apenas renderiza sprites visíveis.
+;----------------------------------------------------------------
 ; Desenhar naves alienígenas (padrão scrambleBase)
 desenha_aliens proc near
     push ax
@@ -1455,6 +1580,11 @@ prox_des_alien:
     ret
 desenha_aliens endp
 
+;----------------------------------------------------------------
+; Função: Verifica colisão entre a nave do jogador e inimigos; atualiza vidas e reposiciona se necessário.
+; Parâmetros de entrada: Posicionamento em nave_jogador_x/nave_jogador_y e arrays alien_array_pos/active; fase_atual define dimensões dos inimigos.
+; Parâmetros de saída: AX=1 se houve colisão, AX=0 caso contrário; pode decrementar vidas e resetar posições.
+;----------------------------------------------------------------
 ; Checa colisao simples entre o jogador e aliens/meteoros
 ; Retorna AX = 1 se houve colisao, 0 caso contrario
 checa_colisao_jogador proc near
@@ -1547,6 +1677,11 @@ fim_colisao:
     ret
 checa_colisao_jogador endp
 
+;----------------------------------------------------------------
+; Função: Exibe tela de vitória com score final e aguarda pressionar uma tecla.
+; Parâmetros de entrada: Usa score, score_buffer e mensagens constantes; assume modo 13h ativo.
+; Parâmetros de saída: Nenhum. Tela é limpa e redesenhada até o retorno.
+;----------------------------------------------------------------
 ; Exibir tela de vitória (formato scrambleBase)
 exibir_vitoria proc near
     push ax
@@ -1625,6 +1760,11 @@ exibir_vitoria proc near
     ret
 exibir_vitoria endp
 
+;----------------------------------------------------------------
+; Função: Converte valor decimal em AX para string de dígitos, preenchendo buffer de trás para frente.
+; Parâmetros de entrada: AX=valor, SI=posição final do buffer para escrita reversa, CX=quantidade de dígitos a gerar.
+; Parâmetros de saída: Buffer preenchido com dígitos ASCII; registradores preservados conforme push/pop.
+;----------------------------------------------------------------
 ; Converte número de 5 dígitos para string
 ; AX = número, SI = final do buffer, CX = quantidade de dígitos
 converte_numero_5dig proc near
@@ -1647,6 +1787,11 @@ loop_conv:
     ret
 converte_numero_5dig endp
 
+;----------------------------------------------------------------
+; Função: Executa o loop principal de uma fase, incluindo desenho, entrada, spawn e temporização.
+; Parâmetros de entrada: Usa variáveis globais do estado do jogo (fase_atual, vidas, score, posições, arrays de inimigos/tiros).
+; Parâmetros de saída: AL retorna 0 ao sair para o menu ou após finalizar todas as fases; estado global é atualizado conforme o jogo.
+;----------------------------------------------------------------
 ; Loop principal de uma fase
 ; Retorna AL = 0 se tempo esgotou, 1 se passou de fase
 executar_fase proc near   
@@ -2043,6 +2188,11 @@ fim_jogo:
     ret
 executar_fase endp
 
+;----------------------------------------------------------------
+; Função: Registra um novo tiro se houver slot livre, posicionando-o na frente da nave.
+; Parâmetros de entrada: Posições nave_jogador_x/nave_jogador_y e arrays tiros_x/tiros_y/tiros_ativo.
+; Parâmetros de saída: Nenhum. Atualiza arrays e ativa o tiro correspondente.
+;----------------------------------------------------------------
 ; Criar novo tiro
 criar_tiro proc near
     push ax
@@ -2077,6 +2227,11 @@ fim_criar_tiro:
     ret
 criar_tiro endp
 
+;----------------------------------------------------------------
+; Função: Atualiza movimento dos tiros ativos, desativando os que saem da tela.
+; Parâmetros de entrada: Arrays tiros_x/tiros_y/tiros_ativo; constantes de largura da tela.
+; Parâmetros de saída: Nenhum. Apenas modifica posições e flags dos tiros.
+;----------------------------------------------------------------
 ; Mover tiros
 move_tiros proc near
     push ax
@@ -2115,6 +2270,11 @@ prox_tiro:
     ret
 move_tiros endp
 
+;----------------------------------------------------------------
+; Função: Desenha todos os tiros ativos como blocos 2x2 amarelos no modo 13h.
+; Parâmetros de entrada: Arrays tiros_x/tiros_y/tiros_ativo.
+; Parâmetros de saída: Nenhum. Pixels são escritos na VRAM.
+;----------------------------------------------------------------
 ; Desenhar tiros
 desenha_tiros proc near
     push ax
@@ -2162,6 +2322,11 @@ prox_des_tiro:
     ret
 desenha_tiros endp
 
+;----------------------------------------------------------------
+; Função: Ponto de entrada do programa; configura modo de vídeo, desenha menu e gerencia seleção/fluxo do jogo.
+; Parâmetros de entrada: Nenhum (execução inicial).
+; Parâmetros de saída: Nenhum. O programa finaliza via int 21h/4Ch ao escolher Sair.
+;----------------------------------------------------------------
 main proc
     mov ax, @data
     mov ds, ax
