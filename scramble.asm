@@ -43,15 +43,30 @@
     menu_s2 db 179, ' Sair  ', 179, 0
     menu_s3 db 192, 196, 196, 196, 196, 196, 196, 196, 217, 0
     
-    ; Sprite nave (8x8 pixels)
-    sprite_nave db 00h,00h,0Bh,0Bh,00h,00h,00h,00h
-                db 00h,0Bh,0Eh,0Eh,0Bh,00h,00h,00h
-                db 0Bh,0Eh,0Eh,0Eh,0Eh,0Bh,00h,00h
-                db 0Bh,0Bh,0Bh,0Bh,0Bh,0Bh,0Bh,0Bh
-                db 0Bh,0Eh,0Eh,0Eh,0Eh,0Bh,00h,00h
-                db 00h,0Bh,0Eh,0Eh,0Bh,00h,00h,00h
-                db 00h,00h,0Bh,0Bh,00h,00h,00h,00h
-                db 00h,00h,00h,00h,00h,00h,00h,00h
+    ; Sprite nave pequena 8x8 (para menu e barra de status)
+    sprite_nave_8x8 db 00h,00h,0Bh,0Bh,00h,00h,00h,00h
+                    db 00h,0Bh,0Eh,0Eh,0Bh,00h,00h,00h
+                    db 0Bh,0Eh,0Eh,0Eh,0Eh,0Bh,00h,00h
+                    db 0Bh,0Bh,0Bh,0Bh,0Bh,0Bh,0Bh,0Bh
+                    db 0Bh,0Eh,0Eh,0Eh,0Eh,0Bh,00h,00h
+                    db 00h,0Bh,0Eh,0Eh,0Bh,00h,00h,00h
+                    db 00h,00h,0Bh,0Bh,00h,00h,00h,00h
+                    db 00h,00h,00h,00h,00h,00h,00h,00h
+    
+    ; Sprite nave (29x13 pixels) - para jogador - estilo Scramble arcade
+    sprite_nave db 00h,00h,00h,00h,00h,00h,00h,00h,09h,09h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                db 00h,00h,00h,00h,00h,00h,00h,09h,09h,09h,09h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                db 00h,00h,00h,00h,00h,00h,09h,09h,09h,09h,09h,09h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                db 00h,00h,00h,00h,00h,09h,09h,09h,09h,09h,09h,09h,09h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                db 00h,00h,00h,00h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                db 00h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h
+                db 09h,0Eh,0Eh,0Eh,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h
+                db 00h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h
+                db 00h,00h,00h,00h,09h,09h,09h,09h,09h,09h,09h,09h,09h,09h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                db 00h,00h,00h,00h,00h,09h,09h,09h,09h,09h,09h,09h,09h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                db 00h,00h,00h,00h,00h,00h,09h,09h,09h,09h,09h,09h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                db 00h,00h,00h,00h,00h,00h,00h,09h,09h,09h,09h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+                db 00h,00h,00h,00h,00h,00h,00h,00h,09h,09h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
     
     ; Sprite meteoro (8x8 pixels)
     sprite_meteoro db 00h,04h,04h,04h,04h,00h,00h,00h
@@ -110,6 +125,14 @@
     
     ; Superfície do planeta (altura Y onde começa)
     superficie_y dw 170
+    
+    ; Naves alienígenas (fase 1)
+    MAX_ALIENS equ 5
+    aliens_x dw MAX_ALIENS dup(0)
+    aliens_y dw MAX_ALIENS dup(0)
+    aliens_ativo db MAX_ALIENS dup(0)
+    spawn_counter dw 0
+    random_seed dw 0
 
 .code
 escreve_texto proc near
@@ -258,7 +281,7 @@ desenha_elementos proc near
     ; Desenhar nave (duplicada 2x para ficar maior)
     mov ax, nave_x
     mov bx, 60
-    lea si, sprite_nave
+    lea si, sprite_nave_8x8
     call desenha_sprite_2x
     
     ; Desenhar meteoro (duplicado 2x)
@@ -358,6 +381,65 @@ skip_pixel_2x:
     pop ax
     ret
 desenha_sprite_2x endp
+
+; Desenhar sprite 29x13 (para nave jogador)
+; AX = posição X, BX = posição Y, SI = endereço do sprite
+desenha_sprite_29x13 proc near
+    push ax
+    push bx
+    push cx
+    push dx
+    push di
+    push si
+    push es
+    
+    mov dx, 0A000h
+    mov es, dx
+    
+    mov cx, 13      ; 13 linhas
+loop_y_29x13:
+    push cx
+    push ax
+    push si
+    
+    ; Calcular offset: Y * 320 + X
+    mov di, bx
+    push dx
+    mov dx, 320
+    push ax
+    mov ax, di
+    mul dx
+    pop dx
+    add ax, dx
+    mov di, ax
+    pop dx
+    
+    mov cx, 29      ; 29 pixels por linha
+loop_x_29x13:
+    lodsb
+    cmp al, 0
+    je skip_pixel_29x13
+    mov es:[di], al
+skip_pixel_29x13:
+    inc di
+    loop loop_x_29x13
+    
+    pop si
+    add si, 29
+    pop ax
+    inc bx
+    pop cx
+    loop loop_y_29x13
+    
+    pop es
+    pop si
+    pop di
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+desenha_sprite_29x13 endp
 
 ; Desenhar sprite 8x8
 ; AX = posição X, BX = posição Y, SI = endereço do sprite
@@ -853,12 +935,270 @@ skip_vida_pixel:
     ret
 desenha_sprite_vida endp
 
-; Loop principal de uma fase
-; Retorna AL = 0 se tempo esgotou, 1 se passou de fase
-executar_fase proc near
+; Desenhar letra/número simples 3x5 como pixels
+; AX = X, BX = Y, CL = caractere ASCII, CH = cor
+desenha_char_pixel proc near
+    push ax
     push bx
     push cx
     push dx
+    push di
+    push si
+    push es
+    
+    mov dx, 0A000h
+    mov es, dx
+    
+    ; Determinar qual padrão desenhar baseado no caractere
+    cmp cl, '0'
+    jl char_letra
+    cmp cl, '9'
+    jg char_letra
+    
+    ; É dígito 0-9
+    sub cl, '0'
+    jmp desenha_digito
+    
+char_letra:
+    ; Letras simples - vamos fazer um quadrado 3x5 preenchido por simplicidade
+    mov si, 5
+loop_char_y:
+    push si
+    push ax
+    
+    mov di, bx
+    mov dx, 320
+    push ax
+    mov ax, di
+    mul dx
+    pop dx
+    add ax, dx
+    mov di, ax
+    
+    mov al, ch
+    mov es:[di], al
+    mov es:[di+1], al
+    mov es:[di+2], al
+    
+    pop ax
+    inc bx
+    pop si
+    dec si
+    jnz loop_char_y
+    jmp fim_char
+    
+desenha_digito:
+    ; Padrões 3x5 para dígitos (simplificados)
+    ; CL = dígito (0-9), usaremos padrão fixo
+    mov si, 5
+loop_dig_y:
+    push si
+    push ax
+    
+    mov di, bx
+    mov dx, 320
+    push ax
+    mov ax, di
+    mul dx
+    pop dx
+    add ax, dx
+    mov di, ax
+    
+    ; Desenhar linha do dígito (3 pixels)
+    mov al, ch
+    mov es:[di], al
+    mov es:[di+1], al
+    mov es:[di+2], al
+    
+    pop ax
+    inc bx
+    pop si
+    dec si
+    jnz loop_dig_y
+    
+fim_char:
+    pop es
+    pop si
+    pop di
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+desenha_char_pixel endp
+
+; Gerar número pseudo-aleatório
+; Retorna AX com valor aleatório
+random proc near
+    push bx
+    push cx
+    push dx
+    
+    mov ax, random_seed
+    mov bx, 25173
+    mul bx
+    add ax, 13849
+    mov random_seed, ax
+    
+    pop dx
+    pop cx
+    pop bx
+    ret
+random endp
+
+; Spawnar nova nave alienígena
+spawn_alien proc near
+    push ax
+    push bx
+    push cx
+    push dx
+    
+    ; Procurar slot livre
+    mov cx, MAX_ALIENS
+    xor bx, bx
+    
+procura_slot_alien:
+    cmp byte ptr aliens_ativo[bx], 0
+    je slot_alien_livre
+    inc bx
+    loop procura_slot_alien
+    jmp fim_spawn_alien
+    
+slot_alien_livre:
+    ; Ativar alien
+    mov byte ptr aliens_ativo[bx], 1
+    
+    ; Posição X: começa na direita (320)
+    shl bx, 1
+    mov aliens_x[bx], 320
+    
+    ; Posição Y: aleatória entre Y=10 (após status) e Y=150 (antes da superfície)
+    call random
+    xor dx, dx
+    mov cx, 140     ; Range de 140 pixels (150 - 10)
+    div cx
+    add dx, 10      ; Adiciona offset mínimo
+    mov aliens_y[bx], dx
+    shr bx, 1
+    
+fim_spawn_alien:
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+spawn_alien endp
+
+; Mover naves alienígenas
+move_aliens proc near
+    push ax
+    push bx
+    push cx
+    
+    mov cx, MAX_ALIENS
+    xor bx, bx
+    
+loop_move_aliens:
+    cmp byte ptr aliens_ativo[bx], 0
+    je prox_alien
+    
+    ; Mover alien para esquerda
+    push bx
+    shl bx, 1
+    mov ax, aliens_x[bx]
+    sub ax, 2       ; Velocidade: 2 pixels por frame
+    
+    ; Desativar se saiu da tela (X < -16, considerando tamanho do sprite)
+    cmp ax, 0FFF0h  ; Verifica se ficou muito negativo (< -16 em word sem sinal)
+    jae desativa_alien  ; Se AX >= FFF0h (muito grande em unsigned = negativo em signed)
+    
+    mov aliens_x[bx], ax
+    shr bx, 1
+    jmp prox_alien
+    
+desativa_alien:
+    shr bx, 1
+    mov byte ptr aliens_ativo[bx], 0
+    
+prox_alien:
+    inc bx
+    loop loop_move_aliens
+    
+    pop cx
+    pop bx
+    pop ax
+    ret
+move_aliens endp
+
+; Desenhar naves alienígenas
+desenha_aliens proc near
+    push ax
+    push bx
+    push cx
+    push dx
+    push si
+    
+    mov cx, MAX_ALIENS
+    xor bx, bx
+    
+loop_des_aliens:
+    cmp byte ptr aliens_ativo[bx], 0
+    je prox_des_alien
+    
+    ; Carregar posição do alien
+    push bx
+    push cx
+    shl bx, 1
+    mov ax, aliens_x[bx]
+    mov dx, aliens_y[bx]
+    
+    ; Verificar limites da tela (X entre 0 e 304, Y entre 10 e 184)
+    cmp ax, 0
+    jl pula_desenho_alien
+    cmp ax, 304         ; 320 - 16 (tamanho sprite)
+    jg pula_desenho_alien
+    cmp dx, 10
+    jl pula_desenho_alien
+    cmp dx, 184         ; 200 - 16 (tamanho sprite)
+    jg pula_desenho_alien
+    
+    ; Desenhar alien (sprite duplicado 2x = 16x16)
+    mov bx, dx          ; BX = Y
+    lea si, sprite_alien
+    call desenha_sprite_2x
+    
+pula_desenho_alien:
+    pop cx
+    pop bx
+    
+prox_des_alien:
+    inc bx
+    loop loop_des_aliens
+    
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+desenha_aliens endp
+
+; Loop principal de uma fase
+; Retorna AL = 0 se tempo esgotou, 1 se passou de fase
+executar_fase proc near   
+
+    push bx
+    push cx
+    push dx
+    
+    ; Limpar tela completamente
+    call limpar_tela
+    
+    ; Esconder cursor
+    mov ah, 01h
+    mov ch, 20h
+    mov cl, 00h
+    int 10h
     
     ; Resetar tempo
     mov al, TEMPO_FASE
@@ -875,9 +1215,9 @@ loop_fase:
     mov ax, 0A000h
     mov es, ax
     
-    ; Limpar área de jogo (de Y=10 até superficie_y)
+    ; Limpar área de jogo (de Y=10 até Y=169 antes da superfície)
     mov di, 3200    ; Y=10 * 320
-    mov cx, 51200   ; 160 linhas * 320 pixels
+    mov cx, 50880   ; 159 linhas * 320 pixels (de Y=10 até Y=168)
     xor al, al
     rep stosb
     
@@ -889,10 +1229,29 @@ loop_fase:
     ; Redesenhar superfície
     call desenhar_superficie
     
-    ; Desenhar nave do jogador usando o sprite correto
+    ; Desenhar nave do jogador usando o sprite 29x13
     mov ax, nave_jogador_x
     mov bx, nave_jogador_y
     lea si, sprite_nave
+    call desenha_sprite_29x13
+    
+    ; Desenhar sprites de vidas no centro (entre score e time)
+    ; Primeira vida
+    mov ax, 120
+    mov bx, 1
+    lea si, sprite_nave_8x8
+    call desenha_sprite
+    
+    ; Segunda vida
+    mov ax, 130
+    mov bx, 1
+    lea si, sprite_nave_8x8
+    call desenha_sprite
+    
+    ; Terceira vida
+    mov ax, 140
+    mov bx, 1
+    lea si, sprite_nave_8x8
     call desenha_sprite
     
     ; Desenhar score e tempo como texto no topo
@@ -918,41 +1277,81 @@ loop_fase:
     mov bl, 0Eh
     call escreve_texto
     
-    ; Mostrar valor do score
+    ; Mostrar valor do score (4 dígitos: milhares, centenas, dezenas, unidades)
     mov ax, score
-    push ax
+    
+    ; Calcular milhares
     xor dx, dx
-    mov bx, 100
+    mov bx, 1000
     div bx
     add al, '0'
-    mov ah, 09h
-    mov bh, 0
-    mov cx, 1
-    int 10h
-    inc dl
+    push dx
+    mov dh, 0
+    mov dl, 6
     mov ah, 02h
     int 10h
-    
-    mov ax, dx
-    xor dx, dx
-    mov bx, 10
-    div bx
-    add al, '0'
     mov ah, 09h
     mov bh, 0
-    mov cx, 1
-    int 10h
-    inc dl
-    mov ah, 02h
-    int 10h
-    
-    add dl, '0'
-    mov ah, 09h
-    mov bh, 0
-    mov al, dl
+    mov bl, 0Ah
     mov cx, 1
     int 10h
     pop ax
+    
+    ; Calcular centenas
+    xor dx, dx
+    mov bx, 100
+    div bx
+    push dx
+    add al, '0'
+    push ax
+    mov dh, 0
+    mov dl, 7
+    mov ah, 02h
+    int 10h
+    pop ax
+    mov ah, 09h
+    mov bh, 0
+    mov bl, 0Ah
+    mov cx, 1
+    int 10h
+    pop ax
+    
+    ; Calcular dezenas
+    xor dx, dx
+    mov bx, 10
+    div bx
+    
+    push dx
+    add al, '0'
+    push ax
+    mov dh, 0
+    mov dl, 8
+    mov ah, 02h
+    int 10h
+    pop ax
+    mov ah, 09h
+    mov bh, 0
+    mov bl, 0Ah
+    mov cx, 1
+    int 10h
+    pop dx
+    
+    ; Calcular unidades
+    mov al, dl
+    add al, '0'
+    
+    push ax
+    mov dh, 0
+    mov dl, 9
+    mov ah, 02h
+    int 10h
+    pop ax
+    
+    mov ah, 09h
+    mov bh, 0
+    mov bl, 0Ah
+    mov cx, 1
+    int 10h
     
     ; Mostrar TEMPO à direita
     mov dh, 0
@@ -970,26 +1369,45 @@ loop_fase:
     mov bl, 0Eh
     call escreve_texto
     
-    ; Mostrar valor do tempo
+    ; Mostrar valor do tempo (2 dígitos nas colunas 38 e 39)
     mov al, tempo_restante
     xor ah, ah
+    xor dx, dx
     mov bl, 10
     div bl
-    add al, '0'
-    mov ah, 09h
-    mov bh, 0
-    mov cx, 1
-    int 10h
     
-    mov al, ah
+    ; Guardar o resultado da divisão em registradores seguros
+    push ax         ; Salvar AX (AL=dezenas, AH=unidades)
+    
+    ; Dezenas (coluna 38)
+    pop ax          ; Recuperar resultado (AL=dezenas, AH=unidades)
+    push ax         ; Guardar novamente
     add al, '0'
-    mov ah, 09h
-    mov bh, 0
-    inc dl
+    mov dh, 0
+    mov dl, 38
     push ax
     mov ah, 02h
     int 10h
     pop ax
+    mov ah, 09h
+    mov bh, 0
+    mov bl, 0Eh
+    mov cx, 1
+    int 10h
+    
+    ; Unidades (coluna 39)
+    pop ax          ; Recuperar resultado novamente
+    mov al, ah      ; AL = unidades
+    add al, '0'
+    mov dh, 0
+    mov dl, 39
+    push ax
+    mov ah, 02h
+    int 10h
+    pop ax
+    mov ah, 09h
+    mov bh, 0
+    mov bl, 0Eh
     mov cx, 1
     int 10h
     
@@ -1008,10 +1426,12 @@ delay_fase:
     cmp ax, 18
     jl check_tecla_fase
     
-    ; 1 segundo passou - adicionar 10 pontos
+    ; 1 segundo passou - adicionar 10 pontos e decrementar tempo
     mov ticks_contador, 0
     add score, 10
     dec tempo_restante
+    
+    ; Verificar se tempo acabou
     cmp tempo_restante, 0
     jne check_tecla_fase
     jmp fim_tempo_fase
@@ -1061,7 +1481,7 @@ nave_baixo:
     mov ax, nave_jogador_y
     add ax, 3
     mov bx, superficie_y
-    sub bx, 10      ; Limite antes da superfície
+    sub bx, 13      ; Limite antes da superfície (altura da nave = 13)
     cmp ax, bx
     jle baixo_ok
     jmp loop_fase
@@ -1082,7 +1502,7 @@ esq_ok:
 nave_dir:
     mov ax, nave_jogador_x
     add ax, 3
-    cmp ax, 310
+    cmp ax, 291         ; 320 - 29 = 291 (limite direito)
     jle dir_ok
     jmp loop_fase
 dir_ok:
@@ -1140,11 +1560,11 @@ slot_livre:
     ; Ativar tiro na posição da nave
     mov byte ptr tiros_ativo[bx], 1
     mov ax, nave_jogador_x
-    add ax, 8       ; Frente da nave
+    add ax, 29      ; Frente da nave (largura = 29)
     shl bx, 1       ; bx*2 para índice word
     mov tiros_x[bx], ax
     mov ax, nave_jogador_y
-    add ax, 3       ; Centro vertical
+    add ax, 6       ; Centro vertical (altura/2 = 13/2 ≈ 6)
     mov tiros_y[bx], ax
     
 fim_criar_tiro:
@@ -1339,6 +1759,14 @@ tecla_enter:
     int 21h
     
 iniciar_jogo:
+    ; Reinicializar modo de vídeo 13h
+    mov ah, 0
+    mov al, 13h
+    int 10h
+    
+    ; Limpar tela completamente
+    call limpar_tela
+    
     ; Resetar fase e jogo
     mov fase_atual, 1
     mov score, 0
@@ -1365,8 +1793,19 @@ limpar_tiros_loop:
     jmp reiniciar_menu
     
 reiniciar_menu:
+    ; Reinicializar modo de vídeo
+    mov ah, 0
+    mov al, 13h
+    int 10h
+    
     ; Limpar tela e redesenhar menu
     call limpar_tela
+    
+    ; Mostrar cursor novamente
+    mov ah, 01h
+    mov ch, 06h
+    mov cl, 07h
+    int 10h
     
     ; Desenhar título em verde-claro (0Ah)
     mov dh, 1
