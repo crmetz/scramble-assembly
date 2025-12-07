@@ -100,7 +100,7 @@
     
     ; Nave do jogador
     nave_jogador_x dw 40
-    nave_jogador_y dw 100
+    nave_jogador_y dw 80
     
     ; Tiros
     MAX_TIROS equ 5
@@ -255,23 +255,23 @@ desenha_elementos proc near
     push di
     push si
     
-    ; Desenhar nave
+    ; Desenhar nave (duplicada 2x para ficar maior)
     mov ax, nave_x
     mov bx, 60
     lea si, sprite_nave
-    call desenha_sprite
+    call desenha_sprite_2x
     
-    ; Desenhar meteoro
+    ; Desenhar meteoro (duplicado 2x)
     mov ax, meteoro_x
     mov bx, 80
     lea si, sprite_meteoro
-    call desenha_sprite
+    call desenha_sprite_2x
     
-    ; Desenhar alien
+    ; Desenhar alien (duplicado 2x)
     mov ax, alien_x
     mov bx, 100
     lea si, sprite_alien
-    call desenha_sprite
+    call desenha_sprite_2x
     
     pop si
     pop di
@@ -281,6 +281,83 @@ desenha_elementos proc near
     pop ax
     ret
 desenha_elementos endp
+
+; Desenhar sprite 8x8 ampliado 2x (fica 16x16)
+; AX = posição X, BX = posição Y, SI = endereço do sprite
+desenha_sprite_2x proc near
+    push ax
+    push bx
+    push cx
+    push dx
+    push di
+    push si
+    push es
+    
+    mov dx, 0A000h
+    mov es, dx
+    
+    mov cx, 8       ; 8 linhas do sprite original
+loop_y_2x:
+    push cx
+    push ax
+    push si
+    
+    ; Desenhar linha duplicada (altura 2x)
+    mov cx, 2
+loop_linha_dup:
+    push cx
+    push ax
+    
+    ; Calcular offset: Y * 320 + X
+    mov di, bx
+    push dx
+    mov dx, 320
+    push ax
+    mov ax, di
+    mul dx
+    pop dx
+    add ax, dx
+    mov di, ax
+    pop dx
+    
+    ; Desenhar pixels da linha (cada pixel 2x na largura)
+    push si
+    mov cx, 8
+loop_x_2x:
+    lodsb
+    cmp al, 0
+    je skip_pixel_2x
+    
+    ; Desenhar pixel duplicado
+    mov es:[di], al
+    mov es:[di+1], al
+skip_pixel_2x:
+    add di, 2       ; Avançar 2 pixels
+    loop loop_x_2x
+    
+    pop si
+    pop ax
+    inc bx          ; Próxima linha
+    pop cx
+    loop loop_linha_dup
+    
+    ; Avançar para próxima linha do sprite original
+    add si, 8
+    pop si
+    add si, 8
+    pop ax
+    pop cx
+    loop loop_y_2x
+    
+    pop es
+    pop si
+    pop di
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+desenha_sprite_2x endp
 
 ; Desenhar sprite 8x8
 ; AX = posição X, BX = posição Y, SI = endereço do sprite
@@ -300,9 +377,11 @@ desenha_sprite proc near
 loop_y:
     push cx
     push ax
+    push si
     
     ; Calcular offset: Y * 320 + X
     mov di, bx
+    push dx
     mov dx, 320
     push ax
     mov ax, di
@@ -310,6 +389,7 @@ loop_y:
     pop dx
     add ax, dx
     mov di, ax
+    pop dx
     
     mov cx, 8
 loop_x:
@@ -321,6 +401,8 @@ skip_pixel:
     inc di
     loop loop_x
     
+    pop si
+    add si, 8
     pop ax
     inc bx
     pop cx
@@ -347,20 +429,23 @@ apaga_elementos proc near
     mov dx, 0A000h
     mov es, dx
     
-    ; Apagar nave
+    ; Apagar nave (16x16 agora)
     mov ax, nave_x
     mov bx, 60
-    call apaga_sprite
+    mov cx, 16
+    call apaga_sprite_tamanho
     
-    ; Apagar meteoro
+    ; Apagar meteoro (16x16)
     mov ax, meteoro_x
     mov bx, 80
-    call apaga_sprite
+    mov cx, 16
+    call apaga_sprite_tamanho
     
-    ; Apagar alien
+    ; Apagar alien (16x16)
     mov ax, alien_x
     mov bx, 100
-    call apaga_sprite
+    mov cx, 16
+    call apaga_sprite_tamanho
     
     pop es
     pop di
@@ -370,6 +455,52 @@ apaga_elementos proc near
     pop ax
     ret
 apaga_elementos endp
+
+; Apagar sprite de tamanho variável
+; AX = posição X, BX = posição Y, CX = tamanho (largura e altura)
+apaga_sprite_tamanho proc near
+    push ax
+    push bx
+    push cx
+    push dx
+    push di
+    push si
+    
+    mov si, cx      ; Guardar tamanho em SI
+loop_apaga_y_tam:
+    push cx
+    push ax
+    
+    ; Calcular offset: Y * 320 + X
+    mov di, bx
+    mov dx, 320
+    push ax
+    mov ax, di
+    mul dx
+    pop dx
+    add ax, dx
+    mov di, ax
+    
+    mov cx, si      ; Largura
+    xor al, al
+loop_apaga_x_tam:
+    mov es:[di], al
+    inc di
+    loop loop_apaga_x_tam
+    
+    pop ax
+    inc bx
+    pop cx
+    loop loop_apaga_y_tam
+    
+    pop si
+    pop di
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+apaga_sprite_tamanho endp
 
 ; Apagar sprite 8x8
 ; AX = posição X, BX = posição Y
@@ -592,104 +723,8 @@ fim_apres:
     ret
 exibir_apresentacao endp
 
-; Desenhar barra de status
+; Desenhar barra de status (simplificada - apenas texto via BIOS)
 desenhar_status proc near
-    push ax
-    push bx
-    push cx
-    push dx
-    push si
-    push di
-    
-    ; SCORE: à esquerda
-    mov dh, 0
-    mov dl, 0
-    mov ah, 02h
-    mov bh, 0
-    int 10h
-    
-    ; Escrever "SCORE: "
-    mov si, offset status_tempo
-    mov byte ptr [si], 'S'
-    mov byte ptr [si+1], 'C'
-    mov byte ptr [si+2], 'O'
-    mov byte ptr [si+3], 'R'
-    mov byte ptr [si+4], 'E'
-    mov byte ptr [si+5], ':'
-    mov byte ptr [si+6], ' '
-    mov byte ptr [si+7], 0
-    mov bl, 0Ah     ; Verde
-    call escreve_texto
-    
-    ; Desenhar score (5 dígitos)
-    mov ax, score
-    call desenha_numero_5dig
-    
-    ; VIDAS: no centro (naves)
-    mov cx, 3
-    mov bx, 0
-loop_vidas:
-    cmp bl, vidas
-    jge fim_vidas
-    
-    ; Calcular posição X central: 160 - (3*19)/2 + bx*19
-    push bx
-    mov ax, bx
-    mov dx, 19
-    mul dx
-    add ax, 132     ; Posição inicial centralizada
-    mov dx, 3       ; Y = 3
-    push ax
-    lea si, sprite_vida
-    call desenha_sprite_vida
-    pop ax
-    pop bx
-    
-    inc bx
-    jmp loop_vidas
-    
-fim_vidas:
-    ; TEMPO: à direita
-    mov dh, 0
-    mov dl, 32
-    mov ah, 02h
-    int 10h
-    
-    ; Restaurar string TEMPO:
-    mov si, offset status_tempo
-    mov byte ptr [si], 'T'
-    mov byte ptr [si+1], 'E'
-    mov byte ptr [si+2], 'M'
-    mov byte ptr [si+3], 'P'
-    mov byte ptr [si+4], 'O'
-    mov byte ptr [si+5], ':'
-    mov byte ptr [si+6], ' '
-    mov byte ptr [si+7], 0
-    mov bl, 0Ah     ; Verde
-    call escreve_texto
-    
-    ; Converter tempo (2 dígitos)
-    mov al, tempo_restante
-    xor ah, ah
-    mov bl, 10
-    div bl
-    
-    add al, '0'
-    mov ah, 09h
-    mov bh, 0
-    mov cx, 1
-    int 10h
-    
-    inc dl
-    mov ah, 02h
-    int 10h
-    
-    mov al, ah
-    add al, '0'
-    mov ah, 09h
-    mov cx, 1
-    int 10h
-    
     pop di
     pop si
     pop dx
@@ -758,7 +793,7 @@ loop_dig:
 desenha_numero_5dig endp
 
 ; Desenhar sprite de vida (7x19)
-; AX = posição X, DX = posição Y
+; AX = posição X, DX = posição Y, SI = endereço do sprite
 desenha_sprite_vida proc near
     push ax
     push bx
@@ -769,15 +804,19 @@ desenha_sprite_vida proc near
     push es
     
     mov bx, dx      ; BX = Y
-    mov dx, 0A000h
-    mov es, dx
+    push bx
+    mov bx, 0A000h
+    mov es, bx
+    pop bx
     
     mov cx, 7       ; 7 linhas
 loop_vida_y:
     push cx
     push ax
+    push si
     
     mov di, bx
+    push dx
     mov dx, 320
     push ax
     mov ax, di
@@ -785,6 +824,7 @@ loop_vida_y:
     pop dx
     add ax, dx
     mov di, ax
+    pop dx
     
     mov cx, 19      ; 19 pixels
 loop_vida_x:
@@ -796,6 +836,8 @@ skip_vida_pixel:
     inc di
     loop loop_vida_x
     
+    pop si
+    add si, 19
     pop ax
     inc bx
     pop cx
@@ -824,30 +866,141 @@ executar_fase proc near
     mov ticks_contador, 0
     
 loop_fase:
-    call limpar_tela
-    call desenhar_superficie
-    call desenhar_status
+    ; Limpar apenas área de jogo (não redesenhar tudo)
+    push es
+    push di
+    push ax
+    push cx
     
-    ; Desenhar nave do jogador
+    mov ax, 0A000h
+    mov es, ax
+    
+    ; Limpar área de jogo (de Y=10 até superficie_y)
+    mov di, 3200    ; Y=10 * 320
+    mov cx, 51200   ; 160 linhas * 320 pixels
+    xor al, al
+    rep stosb
+    
+    pop cx
+    pop ax
+    pop di
+    pop es
+    
+    ; Redesenhar superfície
+    call desenhar_superficie
+    
+    ; Desenhar nave do jogador usando o sprite correto
     mov ax, nave_jogador_x
     mov bx, nave_jogador_y
     lea si, sprite_nave
     call desenha_sprite
     
-    ; Desenhar elementos da fase (inimigos)
-    call desenha_elementos
+    ; Desenhar score e tempo como texto no topo
+    push ax
+    push bx
+    push dx
     
-    ; Desenhar tiros
-    call desenha_tiros
+    mov dh, 0
+    mov dl, 0
+    mov ah, 02h
+    mov bh, 0
+    int 10h
+    
+    ; Mostrar SCORE
+    mov si, offset status_tempo
+    mov byte ptr [si], 'S'
+    mov byte ptr [si+1], 'C'
+    mov byte ptr [si+2], 'O'
+    mov byte ptr [si+3], 'R'
+    mov byte ptr [si+4], 'E'
+    mov byte ptr [si+5], ':'
+    mov byte ptr [si+6], 0
+    mov bl, 0Eh
+    call escreve_texto
+    
+    ; Mostrar valor do score
+    mov ax, score
+    push ax
+    xor dx, dx
+    mov bx, 100
+    div bx
+    add al, '0'
+    mov ah, 09h
+    mov bh, 0
+    mov cx, 1
+    int 10h
+    inc dl
+    mov ah, 02h
+    int 10h
+    
+    mov ax, dx
+    xor dx, dx
+    mov bx, 10
+    div bx
+    add al, '0'
+    mov ah, 09h
+    mov bh, 0
+    mov cx, 1
+    int 10h
+    inc dl
+    mov ah, 02h
+    int 10h
+    
+    add dl, '0'
+    mov ah, 09h
+    mov bh, 0
+    mov al, dl
+    mov cx, 1
+    int 10h
+    pop ax
+    
+    ; Mostrar TEMPO à direita
+    mov dh, 0
+    mov dl, 33
+    mov ah, 02h
+    int 10h
+    
+    mov si, offset status_tempo
+    mov byte ptr [si], 'T'
+    mov byte ptr [si+1], 'I'
+    mov byte ptr [si+2], 'M'
+    mov byte ptr [si+3], 'E'
+    mov byte ptr [si+4], ':'
+    mov byte ptr [si+5], 0
+    mov bl, 0Eh
+    call escreve_texto
+    
+    ; Mostrar valor do tempo
+    mov al, tempo_restante
+    xor ah, ah
+    mov bl, 10
+    div bl
+    add al, '0'
+    mov ah, 09h
+    mov bh, 0
+    mov cx, 1
+    int 10h
+    
+    mov al, ah
+    add al, '0'
+    mov ah, 09h
+    mov bh, 0
+    inc dl
+    push ax
+    mov ah, 02h
+    int 10h
+    pop ax
+    mov cx, 1
+    int 10h
+    
+    pop dx
+    pop bx
+    pop ax
     
     ; Pequeno delay
-    mov cx, 4000h
+    mov cx, 2000h
 delay_fase:
     loop delay_fase
-    
-    ; Mover elementos
-    call move_elementos
-    call move_tiros
     
     ; Atualizar contador de tempo
     inc ticks_contador
@@ -867,8 +1020,13 @@ check_tecla_fase:
     ; Verificar tecla (ESC para voltar ao menu)
     mov ah, 1
     int 16h
-    jz loop_fase
+    jz check_volta_loop
+    jmp check_continua
     
+check_volta_loop:
+    jmp loop_fase
+    
+check_continua:
     mov ah, 0
     int 16h
     
@@ -886,8 +1044,6 @@ nao_esc:
     je nave_esq
     cmp ah, 4Dh     ; Seta direita
     je nave_dir
-    cmp al, ' '     ; Espaço = atirar
-    je nave_atira
     
     jmp loop_fase
     
@@ -931,10 +1087,6 @@ nave_dir:
     jmp loop_fase
 dir_ok:
     mov nave_jogador_x, ax
-    jmp loop_fase
-    
-nave_atira:
-    call criar_tiro
     jmp loop_fase
     
 fim_tempo_fase:
@@ -1192,7 +1344,7 @@ iniciar_jogo:
     mov score, 0
     mov vidas, 3
     mov nave_jogador_x, 40
-    mov nave_jogador_y, 100
+    mov nave_jogador_y, 80
     
     ; Limpar tiros
     mov cx, MAX_TIROS
