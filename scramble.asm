@@ -1015,6 +1015,85 @@ skip_vida_pixel:
     ret
 desenha_sprite_vida endp
 
+; Apagar área de vidas na barra de status
+apaga_vidas_display proc near
+    push ax
+    push bx
+    push cx
+    push dx
+    push di
+    push es
+    
+    mov ax, 0A000h
+    mov es, ax
+    
+    ; Apagar área de 3 sprites (3 x 10 pixels = 30 pixels de largura)
+    mov bx, 1              ; Y inicial
+    mov cx, 8              ; Altura do sprite
+apaga_vidas_linha:
+    push cx
+    
+    ; Calcular posição na memória de vídeo
+    mov di, bx
+    push dx
+    mov dx, 320
+    push ax
+    mov ax, di
+    mul dx
+    pop dx
+    add ax, 120            ; X inicial = 120
+    mov di, ax
+    pop dx
+    
+    ; Apagar 30 pixels (espaço para 3 vidas)
+    push cx
+    mov cx, 30
+apaga_vidas_pixel:
+    mov byte ptr es:[di], 0
+    inc di
+    loop apaga_vidas_pixel
+    pop cx
+    
+    inc bx
+    pop cx
+    loop apaga_vidas_linha
+    
+    pop es
+    pop di
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+apaga_vidas_display endp
+
+; Desenhar sprites de vidas na barra de status
+desenhar_vidas proc near
+    push ax
+    push bx
+    push cx
+    push si
+    
+    mov cl, vidas
+    cmp cl, 0
+    jle desenhar_vidas_fim
+    mov ax, 120            ; X inicial
+    mov bx, 1              ; Y fixo
+    lea si, sprite_nave_8x8
+desenhar_vidas_loop:
+    call desenha_sprite
+    add ax, 10             ; Espaçamento entre ícones
+    dec cl
+    jg desenhar_vidas_loop
+desenhar_vidas_fim:
+    
+    pop si
+    pop cx
+    pop bx
+    pop ax
+    ret
+desenhar_vidas endp
+
 ; Desenhar letra/número simples 3x5 como pixels
 ; AX = X, BX = Y, CL = caractere ASCII, CH = cor
 desenha_char_pixel proc near
@@ -1444,6 +1523,8 @@ loop_colisao:
     cmp byte ptr vidas, 0
     je salva_estado
     dec vidas
+    call apaga_vidas_display
+    call desenhar_vidas
 salva_estado:
     mov byte ptr alien_array_active[si], 0
     mov nave_jogador_x, 40
@@ -1641,18 +1722,7 @@ loop_fase:
     call desenha_aliens
     
     ; Desenhar sprites de vidas no centro (entre score e time)
-    mov cl, vidas
-    cmp cl, 0
-    jle vidas_fim
-    mov ax, 120            ; X inicial
-    mov bx, 1              ; Y fixo
-    lea si, sprite_nave_8x8
-desenha_vidas_loop:
-    call desenha_sprite
-    add ax, 10             ; Espaçamento entre ícones
-    dec cl
-    jg desenha_vidas_loop
-vidas_fim:
+    call desenhar_vidas
     
     ; Desenhar score e tempo como texto no topo
     push ax
