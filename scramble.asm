@@ -2619,6 +2619,17 @@ skip_fase3_setup:
 skip_init_towers:
     
 loop_fase:
+    ; Aguarda retrace vertical para evitar flicker
+    mov dx, 03DAh           ; Porta de status VGA
+wait_retrace:
+    in al, dx
+    test al, 08h            ; Bit 3 = retrace vertical
+    jz wait_retrace         ; Aguarda até retrace começar
+wait_retrace_end:
+    in al, dx
+    test al, 08h
+    jnz wait_retrace_end    ; Aguarda até retrace terminar
+    
     ; Limpar apenas área de jogo (não redesenhar tudo)
     push es
     push di
