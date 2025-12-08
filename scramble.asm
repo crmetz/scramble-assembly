@@ -47,6 +47,18 @@
     press_key_msg db "Pressione qualquer tecla",13,10,0
     press_key_msg_length equ $-press_key_msg
     
+    ; ASCII art para Game Over
+    game_over_msg   db 5 dup(" "),"                          ",13,10
+                    db 5 dup(" "),"   ___   _   __  __ ___  ",13,10
+                    db 5 dup(" "),"  / __| /_\ |  \/  | __| ",13,10
+                    db 5 dup(" ")," | (_ |/ _ \| |\/| | _|  ",13,10
+                    db 5 dup(" "),"  \___/_/ \_\_|_ |_|___| ",13,10
+                    db 5 dup(" "),"  / _ \ \ / / __| _ \    ",13,10
+                    db 5 dup(" ")," | (_) \ V /| _||   /    ",13,10
+                    db 5 dup(" "),"  \___/ \_/ |___|_|_\    ",13,10
+                    db 5 dup(" "),"                          ",13,10
+    game_over_msg_length equ $-game_over_msg
+    
     ; Status
     status_tempo db 'TEMPO: ', 0
     status_fase db 'FASE: ', 0
@@ -170,6 +182,41 @@
     meteor_move_speed dw 2                   ; Velocidade fase 2 (2 pixels por frame)
     meteor_spawn_delay dw 45                 ; Frames entre spawns fase 2 (~2.5 segundos)
     random_seed dw 0
+    
+    ; Sistema de torres para fase 3 (geração procedural)
+    MAX_TOWERS equ 12
+    tower_heights db MAX_TOWERS dup(0)  ; Altura de cada torre (em andares)
+    tower_x_pos   dw MAX_TOWERS dup(0)  ; Posição X de cada torre
+    tower_active  db MAX_TOWERS dup(0)  ; Torre ativa? (0=não, 1=sim)
+    tower_spawn_counter dw 0            ; Contador para spawnar novas torres
+    tower_min_spacing   equ 34          ; Espaçamento entre torres
+    tower_sprite_offset dw 0            ; Offset no sprite (pixels a pular no clipping)
+    tower_render_width  dw 34           ; Largura a renderizar (com clipping)
+    
+    ; Constantes da fase 3
+    ROW_TERRAIN_FASE3 equ 150           ; Linha onde começa o terreno
+    BASE_WIDTH  equ 34                  ; Largura de um andar (em pixels)
+    BASE_HEIGHT equ 8                   ; Altura de um andar (em pixels)
+    
+    ; Sprite da base das torres (34x8 pixels por andar)
+    base    db 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 0, 0
+            db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 7, 7, 0, 0
+            db 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4, 7, 7, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 7, 7, 0, 0
+            db 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4, 7, 7, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 7, 7, 0, 0
+            db 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4, 7, 7, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 7, 7, 0, 0
+            db 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4, 7, 7, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 7, 7, 0, 0
+            db 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 7, 7, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 0BH, 7, 7, 0, 0
+            db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 0, 0
+    
+    ; Sprite do topo das torres (34x8 pixels)
+    topo    db 7, 7, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 0, 0
+            db 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 0, 0
+            db 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 4, 4, 4, 4, 4, 4, 0, 0
+            db 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 4, 4, 4, 4, 4, 4, 0, 0
+            db 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 4, 4, 4, 4, 4, 4, 0, 0
+            db 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 4, 4, 4, 4, 4, 4, 0, 0
+            db 7, 7, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 0, 0
+            db 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 0, 0
 
 .code
 ;----------------------------------------------------------------
@@ -773,7 +820,10 @@ cor_fase2:
     mov dl, 05h         ; Roxo/Magenta escuro
     jmp desenha_surf
 cor_fase3:
-    mov dl, 04h         ; Vermelho escuro
+    ; Fase 3: renderiza torres procedurais em vez de cor sólida
+    call update_fase3_towers
+    call render_fase3_towers
+    jmp fim_superficie
     
 desenha_surf:
     ; Desenhar linha de superfície
@@ -801,6 +851,7 @@ loop_surf:
     pop cx
     loop loop_surf
     
+fim_superficie:
     pop es
     pop di
     pop dx
@@ -1682,6 +1733,440 @@ checa_colisao_jogador endp
 ; Parâmetros de entrada: Usa score, score_buffer e mensagens constantes; assume modo 13h ativo.
 ; Parâmetros de saída: Nenhum. Tela é limpa e redesenhada até o retorno.
 ;----------------------------------------------------------------
+; Inicializa sistema de torres da fase 3
+init_fase3_towers proc near
+    push ax
+    push bx
+    push cx
+    push dx
+    
+    ; Inicializa torres preenchendo a tela
+    xor bx, bx
+    mov dx, 320                      ; Começa em X = 320
+    mov cx, MAX_TOWERS
+    
+init_tower_loop:
+    ; Ativa torre
+    mov byte ptr tower_active[bx], 1
+    
+    ; Define posição X
+    push bx
+    shl bx, 1
+    mov word ptr tower_x_pos[bx], dx
+    pop bx
+    
+    ; Altura aleatória (3 a 6 andares)
+    push bx
+    push cx
+    push dx
+    call random
+    and ax, 3               ; 0-3
+    add al, 3               ; 3-6 andares
+    pop dx
+    pop cx
+    pop bx
+    mov byte ptr tower_heights[bx], al
+    
+    ; Próxima torre (BASE_WIDTH pixels à esquerda)
+    sub dx, BASE_WIDTH
+    
+    inc bx
+    loop init_tower_loop
+    
+    ; Reseta contadores
+    mov tower_spawn_counter, 0
+    
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+init_fase3_towers endp
+
+; Atualiza posição das torres e gera novas
+update_fase3_towers proc near
+    push ax
+    push bx
+    push cx
+    push dx
+    
+    ; Move todas as torres para esquerda
+    xor bx, bx
+    mov cx, MAX_TOWERS
+move_towers_loop:
+    cmp byte ptr tower_active[bx], 0
+    je skip_move_tower
+    
+    ; Move torre 1 pixel para esquerda
+    push bx
+    shl bx, 1
+    dec word ptr tower_x_pos[bx]
+    
+    ; Verifica se saiu pela esquerda (X < -40)
+    mov ax, word ptr tower_x_pos[bx]
+    pop bx
+    
+    test ax, ax
+    jns skip_move_tower
+    
+    ; X é negativo
+    neg ax
+    cmp ax, 40
+    jl skip_move_tower
+    
+    ; Desativa torre
+    mov byte ptr tower_active[bx], 0
+    
+skip_move_tower:
+    inc bx
+    loop move_towers_loop
+    
+    ; Verifica se deve gerar nova torre
+    inc tower_spawn_counter
+    mov ax, tower_spawn_counter
+    cmp ax, tower_min_spacing
+    jl skip_spawn_tower
+    
+    ; Reseta contador e gera nova torre
+    mov tower_spawn_counter, 0
+    call spawn_fase3_tower
+    
+skip_spawn_tower:
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+update_fase3_towers endp
+
+; Gera uma nova torre aleatória
+spawn_fase3_tower proc near
+    push ax
+    push bx
+    push cx
+    
+    ; Procura slot vazio
+    xor bx, bx
+    mov cx, MAX_TOWERS
+find_empty_slot:
+    cmp byte ptr tower_active[bx], 0
+    je found_empty_slot
+    inc bx
+    loop find_empty_slot
+    jmp spawn_done
+    
+found_empty_slot:
+    ; Ativa torre
+    mov byte ptr tower_active[bx], 1
+    
+    ; Posição X inicial (320)
+    push bx
+    shl bx, 1
+    mov word ptr tower_x_pos[bx], 320
+    pop bx
+    
+    ; Gera altura aleatória (2 a 8 andares)
+    call random
+    and ax, 7        ; 0-7
+    add al, 2        ; 2-9
+    mov byte ptr tower_heights[bx], al
+    
+spawn_done:
+    pop cx
+    pop bx
+    pop ax
+    ret
+spawn_fase3_tower endp
+
+; Renderiza todas as torres ativas
+render_fase3_towers proc near
+    push ax
+    push bx
+    push cx
+    push dx
+    push si
+    push di
+    
+    xor bx, bx
+    mov cx, MAX_TOWERS
+render_towers_loop:
+    cmp byte ptr tower_active[bx], 0
+    je skip_render_tower
+    
+    ; Renderiza esta torre
+    push bx
+    push cx
+    
+    xor ah, ah
+    mov al, byte ptr tower_heights[bx]
+    mov cx, ax
+    
+    push bx
+    shl bx, 1
+    mov dx, word ptr tower_x_pos[bx]
+    pop bx
+    
+    call render_tower
+    
+    pop cx
+    pop bx
+    
+skip_render_tower:
+    inc bx
+    loop render_towers_loop
+    
+    pop di
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+render_fase3_towers endp
+
+; Renderiza uma torre na posição especificada
+; CX = altura (andares), DX = posição X
+render_tower proc near
+    push ax
+    push bx
+    push cx
+    push dx
+    push si
+    push di
+    push bp
+    push es
+    
+    cld
+    
+    mov ax, 0A000h
+    mov es, ax
+    
+    ; Verifica visibilidade (usa jump intermediário para evitar "out of range")
+    cmp dx, -BASE_WIDTH
+    jl tower_not_visible_jmp
+    cmp dx, 320
+    jge tower_not_visible_jmp
+    jmp tower_visible
+    
+tower_not_visible_jmp:
+    jmp tower_not_visible
+    
+tower_visible:
+    push cx
+    
+    ; Calcula clipping horizontal
+    mov tower_sprite_offset, 0
+    mov ax, BASE_WIDTH
+    mov tower_render_width, ax
+    
+    cmp dx, 0
+    jge clip_right_check
+    
+    ; X negativo: ajusta offset
+    mov ax, dx
+    neg ax
+    mov tower_sprite_offset, ax
+    mov bx, BASE_WIDTH
+    sub bx, ax
+    mov tower_render_width, bx
+    mov dx, 0
+    jmp clip_done
+    
+clip_right_check:
+    mov ax, dx
+    add ax, BASE_WIDTH
+    cmp ax, 320
+    jle clip_done
+    mov ax, 320
+    sub ax, dx
+    mov tower_render_width, ax
+    
+clip_done:
+    ; Calcula posição Y do topo
+    mov ax, cx
+    mov bl, BASE_HEIGHT
+    mul bl
+    mov bx, ROW_TERRAIN_FASE3
+    sub bx, ax
+    
+    cmp bx, 0
+    jge tower_y_ok
+    xor bx, bx
+tower_y_ok:
+    
+    ; Calcula offset linear: Y * 320 + X
+    push dx
+    mov ax, bx
+    mov bx, 320
+    mul bx
+    pop bx
+    add ax, bx
+    mov di, ax
+    
+    ; Total de andares
+    pop ax
+    mov bp, ax
+    add ax, 6
+    mov cx, ax
+    
+render_floor_loop:
+    push cx
+    push bp
+    
+    mov ax, bp
+    add ax, 6
+    cmp cx, ax
+    pop bp
+    jne render_base_andar
+    
+    ; Renderiza topo
+    push di
+    mov si, offset topo
+    add si, tower_sprite_offset
+    
+    mov cx, BASE_HEIGHT
+render_top_line_loop:
+    push cx
+    push di
+    push si
+    
+    mov cx, tower_render_width
+    rep movsb
+    
+    pop si
+    add si, BASE_WIDTH
+    pop di
+    pop cx
+    add di, 320
+    loop render_top_line_loop
+    pop di
+    jmp next_floor
+    
+render_base_andar:
+    ; Renderiza andar da base
+    push di
+    mov si, offset base
+    add si, tower_sprite_offset
+    
+    mov cx, BASE_HEIGHT
+render_base_line_loop:
+    push cx
+    push di
+    push si
+    
+    mov cx, tower_render_width
+    rep movsb
+    
+    pop si
+    add si, BASE_WIDTH
+    pop di
+    pop cx
+    add di, 320
+    loop render_base_line_loop
+    pop di
+    
+next_floor:
+    mov ax, BASE_HEIGHT
+    mov bx, 320
+    mul bx
+    add di, ax
+    
+    pop cx
+    loop render_floor_loop
+    jmp tower_done
+    
+tower_not_visible:
+    
+tower_done:
+    pop es
+    pop bp
+    pop di
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+render_tower endp
+
+; Exibir tela de Game Over
+exibir_game_over proc near
+    push ax
+    push bx
+    push cx
+    push dx
+    push si
+    push es
+    push bp
+    
+    call limpar_tela
+    
+    ; Aguardar um pouco
+    xor cx, cx
+    mov dx, 2710H
+    mov ah, 86H
+    int 15h
+    
+    ; Configura ES para apontar para o segmento de dados
+    mov ax, ds 
+    mov es, ax
+    
+    ; Exibe mensagem Game Over em vermelho
+    mov bp, offset game_over_msg
+    mov cx, game_over_msg_length
+    mov bl, 0Ch     ; Vermelho
+    mov dh, 3       ; Linha 3
+    mov dl, 0       ; Coluna 0
+    call PRINT_STRING
+    
+    ; Exibe "SCORE FINAL:" em branco (linha 15, coluna 10)
+    mov bp, offset final_score_msg
+    mov cx, final_score_msg_length
+    mov bl, 0Fh     ; Branco
+    mov dh, 15
+    mov dl, 10
+    call PRINT_STRING
+    
+    ; Converte score para string
+    mov ax, score
+    mov si, offset score_buffer + 4
+    mov cx, 5
+    call converte_numero_5dig
+    
+    ; Exibe score em amarelo (linha 15, coluna 23)
+    mov bp, offset score_buffer
+    mov cx, 5
+    mov bl, 0Eh     ; Amarelo
+    mov dh, 15
+    mov dl, 23
+    call PRINT_STRING
+    
+    ; Exibe mensagem para pressionar tecla (linha 18)
+    mov bp, offset press_key_msg
+    mov cx, press_key_msg_length
+    mov bl, 0Fh     ; Branco
+    mov dh, 18
+    mov dl, 5
+    call PRINT_STRING
+    
+    ; Aguarda tecla (dupla leitura para limpar buffer)
+    xor ah, ah
+    int 16h
+    xor ah, ah
+    int 16h
+    
+    call limpar_tela
+    
+    pop bp
+    pop es
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+exibir_game_over endp
+
 ; Exibir tela de vitória (formato scrambleBase)
 exibir_vitoria proc near
     push ax
@@ -1832,6 +2317,12 @@ limpar_aliens_init:
     
     ; Reset timer de spawn
     mov alien_spawn_timer, 0
+    
+    ; Se é fase 3, inicializa sistema de torres
+    cmp fase_atual, 3
+    jne skip_init_towers
+    call init_fase3_towers
+skip_init_towers:
     
 loop_fase:
     ; Limpar apenas área de jogo (não redesenhar tudo)
@@ -2327,6 +2818,35 @@ desenha_tiros endp
 ; Parâmetros de entrada: Nenhum (execução inicial).
 ; Parâmetros de saída: Nenhum. O programa finaliza via int 21h/4Ch ao escolher Sair.
 ;----------------------------------------------------------------
+; Verifica condições de fim de jogo
+; Retorna: AL = 0 (continua), 1 (game over), 2 (vitória)
+check_game_end proc near
+    push bx
+    
+    ; Verifica se perdeu todas as vidas
+    cmp vidas, 0
+    je game_over_condition
+    
+    ; Verifica se completou todas as fases (fase > 3)
+    cmp fase_atual, 4
+    jge victory_condition
+    
+    ; Jogo continua
+    mov al, 0
+    jmp end_check
+    
+game_over_condition:
+    mov al, 1
+    jmp end_check
+    
+victory_condition:
+    mov al, 2
+    
+end_check:
+    pop bx
+    ret
+check_game_end endp
+
 main proc
     mov ax, @data
     mov ds, ax
@@ -2454,10 +2974,26 @@ limpar_tiros_loop:
     mov al, 1
     call exibir_apresentacao
     
+game_loop:
     ; Executar fase
     call executar_fase
     
-    ; Voltar ao menu
+    ; Verificar condições de fim de jogo
+    call check_game_end
+    cmp al, 1            ; Game Over?
+    je game_over_end
+    cmp al, 2            ; Vitória?
+    je victory_end
+    
+    ; Continua jogo (próxima fase)
+    jmp game_loop
+    
+game_over_end:
+    call exibir_game_over
+    jmp reiniciar_menu
+    
+victory_end:
+    call exibir_vitoria
     jmp reiniciar_menu
     
 reiniciar_menu:
