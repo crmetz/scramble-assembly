@@ -194,7 +194,7 @@
     tower_render_width  dw 34           ; Largura a renderizar (com clipping)
     
     ; Constantes da fase 3
-    ROW_TERRAIN_FASE3 equ 150           ; Linha onde começa o terreno
+    ROW_TERRAIN_FASE3 equ 165           ; Linha onde começa o terreno (mais baixo para facilitar)
     BASE_WIDTH  equ 34                  ; Largura de um andar (em pixels)
     BASE_HEIGHT equ 8                   ; Altura de um andar (em pixels)
     
@@ -794,7 +794,6 @@ apaga_sprite endp
 ; Parâmetros de entrada: Usa fase_atual para escolher cor e superficie_y para posição inicial.
 ; Parâmetros de saída: Nenhum. Preenche linhas na VRAM.
 ;----------------------------------------------------------------
-; Desenhar superfície do planeta
 desenhar_superficie proc near
     push ax
     push bx
@@ -869,7 +868,6 @@ desenhar_superficie endp
 ; Parâmetros de entrada: Nenhum.
 ; Parâmetros de saída: Nenhum. VRAM é zerada.
 ;----------------------------------------------------------------
-; Limpar tela mantendo modo 13h
 limpar_tela proc near
     push ax
     push cx
@@ -895,8 +893,6 @@ limpar_tela endp
 ; Parâmetros de entrada: AL=número da fase (1,2,3) para escolher arte e cor.
 ; Parâmetros de saída: Nenhum. Apenas desenha texto e faz delay.
 ;----------------------------------------------------------------
-; Exibir apresentação de fase
-; AL = número da fase (1, 2 ou 3)
 exibir_apresentacao proc near
     push ax
     push bx
@@ -1010,28 +1006,10 @@ fim_apres:
 exibir_apresentacao endp
 
 ;----------------------------------------------------------------
-; Função: (Placeholder) deveria desenhar barra de status; atualmente retorna imediatamente.
-; Parâmetros de entrada: Nenhum.
-; Parâmetros de saída: Nenhum. Não realiza operações.
-;----------------------------------------------------------------
-; Desenhar barra de status (simplificada - apenas texto via BIOS)
-desenhar_status proc near
-    pop di
-    pop si
-    pop dx
-    pop cx
-    pop bx
-    pop ax
-    ret
-desenhar_status endp
-
-;----------------------------------------------------------------
 ; Função: Imprime número decimal de 5 dígitos no cursor atual via BIOS.
 ; Parâmetros de entrada: AX=valor a ser impresso; utiliza página 0 de vídeo.
 ; Parâmetros de saída: Nenhum. Cursor avança após cada dígito.
 ;----------------------------------------------------------------
-; Desenhar número de 5 dígitos
-; AX = número
 desenha_numero_5dig proc near
     push ax
     push bx
@@ -1093,8 +1071,6 @@ desenha_numero_5dig endp
 ; Parâmetros de entrada: AX=posição X, DX=posição Y, SI=endereço do sprite de vida.
 ; Parâmetros de saída: Nenhum. Pixels são escritos na VRAM.
 ;----------------------------------------------------------------
-; Desenhar sprite de vida (7x19)
-; AX = posição X, DX = posição Y, SI = endereço do sprite
 desenha_sprite_vida proc near
     push ax
     push bx
@@ -1159,7 +1135,6 @@ desenha_sprite_vida endp
 ; Parâmetros de entrada: Nenhum. Usa posições fixas e assume modo 13h.
 ; Parâmetros de saída: Nenhum. Área é preenchida com 0.
 ;----------------------------------------------------------------
-; Apagar área de vidas na barra de status
 apaga_vidas_display proc near
     push ax
     push bx
@@ -1216,7 +1191,6 @@ apaga_vidas_display endp
 ; Parâmetros de entrada: Usa variável global vidas; posicionamento fixo em X=120, Y=1.
 ; Parâmetros de saída: Nenhum. Apenas renderiza sprites na VRAM.
 ;----------------------------------------------------------------
-; Desenhar sprites de vidas na barra de status
 desenhar_vidas proc near
     push ax
     push bx
@@ -1248,8 +1222,6 @@ desenhar_vidas endp
 ; Parâmetros de entrada: AX=X, BX=Y, CL=código ASCII do caractere, CH=cor do pixel.
 ; Parâmetros de saída: Nenhum. Pixels são escritos no segmento de vídeo 0A000h.
 ;----------------------------------------------------------------
-; Desenhar letra/número simples 3x5 como pixels
-; AX = X, BX = Y, CL = caractere ASCII, CH = cor
 desenha_char_pixel proc near
     push ax
     push bx
@@ -1345,8 +1317,6 @@ desenha_char_pixel endp
 ; Parâmetros de entrada: random_seed contém o valor atual da semente.
 ; Parâmetros de saída: AX=novo valor pseudo-aleatório; random_seed é atualizado.
 ;----------------------------------------------------------------
-; Gerar número pseudo-aleatório
-; Retorna AX com valor aleatório (0-65535)
 random proc near
     push bx
     push dx
@@ -1367,7 +1337,6 @@ random endp
 ; Parâmetros de entrada: Usa MAX_ALIENS, alien_array_active/pos, fase_atual para posicionamento; random_seed para sortear Y.
 ; Parâmetros de saída: Nenhum. Atualiza arrays de estado e posição quando um slot livre é encontrado.
 ;----------------------------------------------------------------
-; Spawnar nova nave alienígena (padrão scrambleBase)
 spawn_alien proc near
     push ax
     push bx
@@ -1404,12 +1373,36 @@ slot_alien_livre:
     
 spawn_y_fase3:
     ; Fase 3: Y entre 30-120 (acima das torres que começam em 150)
+    ; Tenta até 10 vezes encontrar posição sem colisão
+    mov di, 10                      ; Contador de tentativas
+    
+spawn_retry_y_fase3:
     call random
     xor dx, dx
     mov cx, 90          ; Divisor (120-30=90)
     div cx              ; DX = resto (0-89)
     mov ax, dx
     add ax, 30          ; Y entre 30-119
+    
+    ; Verifica se essa posição colidiria com torres
+    push ax
+    push di
+    mov dx, ax                      ; DX = Y proposto
+    mov ax, 298                     ; AX = X (posição de spawn)
+    mov cx, 29                      ; Largura do alien (mesmo que nave)
+    mov si, 13                      ; Altura do alien
+    call check_tower_collision_at_pos
+    pop di
+    cmp ax, 1
+    pop ax
+    jne spawn_calc_pos              ; Sem colisão, prosseguir
+    
+    ; Colisão detectada, tentar novamente
+    dec di
+    jnz spawn_retry_y_fase3
+    
+    ; Após 10 tentativas, usar Y padrão seguro (50)
+    mov ax, 50
     
 spawn_calc_pos:
     ; Calcula posição linear: Y*320 + X
@@ -1437,7 +1430,6 @@ spawn_alien endp
 ; Parâmetros de entrada: Usa arrays alien_array_active/pos e velocidades alien_move_speed/meteor_move_speed; depende de fase_atual.
 ; Parâmetros de saída: Nenhum. Atualiza posições e flags de atividade nos arrays.
 ;----------------------------------------------------------------
-; Mover naves alienígenas (padrão scrambleBase)
 move_aliens proc near
     push ax
     push bx
@@ -1507,7 +1499,6 @@ move_aliens endp
 ; Parâmetros de entrada: fase_atual define o delay de spawn; alien_spawn_timer/delay e meteor_spawn_delay controlam temporização.
 ; Parâmetros de saída: Nenhum. Pode ativar novos inimigos e mover os existentes.
 ;----------------------------------------------------------------
-; Atualizar sistema de aliens/meteoros (movimento + spawn automático)
 update_aliens_system proc near
     push ax
     push bx
@@ -1546,7 +1537,6 @@ update_aliens_system endp
 ; Parâmetros de entrada: Arrays alien_array_pos/active, fase_atual para escolher sprite; usa modo 13h.
 ; Parâmetros de saída: Nenhum. Apenas renderiza sprites visíveis.
 ;----------------------------------------------------------------
-; Desenhar naves alienígenas (padrão scrambleBase)
 desenha_aliens proc near
     push ax
     push bx
@@ -1654,8 +1644,6 @@ desenha_aliens endp
 ; Parâmetros de entrada: Posicionamento em nave_jogador_x/nave_jogador_y e arrays alien_array_pos/active; fase_atual define dimensões dos inimigos.
 ; Parâmetros de saída: AX=1 se houve colisão, AX=0 caso contrário; pode decrementar vidas e resetar posições.
 ;----------------------------------------------------------------
-; Checa colisao simples entre o jogador e aliens/meteoros
-; Retorna AX = 1 se houve colisao, 0 caso contrario
 checa_colisao_jogador proc near
     push bx
     push cx
@@ -1709,8 +1697,10 @@ loop_colisao:
     ; Verifica eixo Y
     mov ax, dx              ; inimigo_y
     add ax, di              ; inimigo_y + altura
+    push si                 ; Salva índice
     mov si, nave_jogador_y
     cmp si, ax
+    pop si                  ; Restaura índice
     jge proximo_inimigo
 
     mov ax, nave_jogador_y
@@ -1719,12 +1709,14 @@ loop_colisao:
     jge proximo_inimigo
 
     ; Colisao detectada
+    push si                 ; Salva índice antes de usar
     cmp byte ptr vidas, 0
     je salva_estado
-    dec vidas
+    dec vidas             ; DESABILITADO: sem dano
     call apaga_vidas_display
     call desenhar_vidas
 salva_estado:
+    pop si                  ; Restaura índice
     mov byte ptr alien_array_active[si], 0
     mov nave_jogador_x, 40
     
@@ -1803,7 +1795,7 @@ loop_torres_colisao:
     xor ah, ah
     
     ; Calcula limites da torre
-    ; Torre: X_torre até X_torre+34, Y desde (170 - altura*8) até Y=200
+    ; Torre: X_torre até X_torre+34, Y desde (185 - altura*8) até Y=200
     ; BASE_WIDTH = 34, BASE_HEIGHT = 8
     
     ; Limite direito da torre: X_torre + 34
@@ -1826,28 +1818,28 @@ loop_torres_colisao:
     ; Há sobreposição em X, verifica Y
     mov ax, word ptr temp_word  ; Recupera altura
     
-    ; Y_topo_torre = 170 - (altura * 8)
+    ; Y_topo_torre = 185 - (altura * 8)
     mov cx, 8
     mul cx                      ; AX = altura * 8
-    mov di, 170
+    mov di, 185
     sub di, ax                  ; DI = Y_topo_torre
     
     ; Verifica colisão no eixo Y
-    ; nave_y + 13 >= torre_topo E nave_y <= 200
+    ; nave_y + 13 > torre_topo E nave_y < 200
     mov ax, nave_jogador_y
     add ax, 13                  ; nave_baixo
-    cmp ax, di                  ; nave_baixo >= torre_topo?
-    jl proxima_torre_colisao
+    cmp ax, di                  ; nave_baixo > torre_topo?
+    jle proxima_torre_colisao
     
-    ; nave_y <= 200 (sempre verdadeiro se nave está na tela)
+    ; Verifica se nave está abaixo do topo da torre
     mov ax, nave_jogador_y
-    cmp ax, 200
-    jge proxima_torre_colisao
+    cmp ax, di                  ; nave_y < torre_topo?
+    jl proxima_torre_colisao    ; Se nave está completamente acima, sem colisão
     
     ; Colisão detectada!
     cmp byte ptr vidas, 0
     je torre_salva_estado
-    dec vidas
+    dec vidas             ; DESABILITADO: sem dano
     call apaga_vidas_display
     call desenhar_vidas
     
@@ -1873,11 +1865,127 @@ fim_torres_colisao:
 verifica_colisao_torres endp
 
 ;----------------------------------------------------------------
+; Função: Verifica se uma posição arbitrária colide com torres da fase 3
+; Entrada: AX = X, DX = Y, CX = largura, SI = altura
+; Saída: AX = 1 se colidiu, 0 caso contrário
+;----------------------------------------------------------------
+check_tower_collision_at_pos proc near
+    push bx
+    push cx
+    push dx
+    push si
+    push di
+    push bp
+    
+    ; Salva parâmetros
+    mov word ptr temp_word, ax      ; X
+    mov bp, dx                      ; Y
+    ; CX já tem largura
+    ; SI já tem altura
+    
+    ; Loop por todas as torres
+    mov dx, MAX_TOWERS
+    xor bx, bx
+    
+loop_check_towers:
+    ; Verifica se torre está ativa
+    cmp byte ptr tower_active[bx], 0
+    je proxima_check_torre
+    
+    ; Pega posição X da torre
+    push bx
+    shl bx, 1                       ; BX *= 2 para word array
+    mov di, word ptr tower_x_pos[bx]
+    pop bx
+    
+    ; Pega altura da torre (número de andares)
+    mov al, byte ptr tower_heights[bx]
+    xor ah, ah
+    
+    ; Calcula limites da torre
+    ; Torre X: di até di+34
+    ; Torre Y: (185 - altura*8) até 200
+    
+    ; Limite direito da torre: X_torre + 34
+    push ax
+    mov ax, di
+    add ax, 34
+    push ax                         ; Salva X_torre_dir
+    
+    ; Verifica colisão no eixo X
+    ; objeto_x + largura > torre_x E objeto_x < torre_x + 34
+    mov ax, word ptr temp_word      ; objeto_x
+    add ax, cx                      ; objeto_x + largura
+    cmp ax, di                      ; > torre_x?
+    jle sem_colisao_x_check
+    
+    mov ax, word ptr temp_word      ; objeto_x
+    pop di                          ; Recupera X_torre_dir
+    cmp ax, di                      ; < torre_x_dir?
+    jge sem_colisao_x_check_2
+    
+    ; Há sobreposição em X, verifica Y
+    pop ax                          ; Recupera altura da torre
+    
+    ; Y_topo_torre = 185 - (altura * 8)
+    push dx
+    mov dx, 8
+    mul dx                          ; AX = altura * 8
+    mov di, 185
+    sub di, ax                      ; DI = Y_topo_torre
+    pop dx
+    
+    ; Verifica colisão no eixo Y
+    ; objeto_y + altura > torre_topo E objeto_y < 200
+    mov ax, bp                      ; objeto_y
+    add ax, si                      ; objeto_y + altura
+    cmp ax, di                      ; > torre_topo?
+    jle sem_colisao_y_check
+    
+    mov ax, bp                      ; objeto_y
+    cmp ax, 200                     ; < 200?
+    jge sem_colisao_y_check
+    
+    ; Colisão detectada!
+    mov ax, 1
+    jmp fim_check_towers
+    
+sem_colisao_x_check:
+    pop di                          ; Remove X_torre_dir
+sem_colisao_x_check_2:
+    pop ax                          ; Remove altura
+    jmp proxima_check_torre
+    
+sem_colisao_y_check:
+    jmp proxima_check_torre
+    
+proxima_check_torre:
+    inc bx
+    dec dx
+    jnz loop_check_towers
+    
+    xor ax, ax                      ; Nenhuma colisão
+    
+fim_check_towers:
+    pop bp
+    pop di
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    ret
+check_tower_collision_at_pos endp
+
+;----------------------------------------------------------------
 ; Função: Exibe tela de vitória com score final e aguarda pressionar uma tecla.
 ; Parâmetros de entrada: Usa score, score_buffer e mensagens constantes; assume modo 13h ativo.
 ; Parâmetros de saída: Nenhum. Tela é limpa e redesenhada até o retorno.
 ;----------------------------------------------------------------
-; Inicializa sistema de torres da fase 3
+;----------------------------------------------------------------
+; Função: Inicializa sistema de torres da fase 3 preenchendo a tela com torres de alturas aleatórias.
+; Parâmetros de entrada: Constantes MAX_TOWERS, BASE_WIDTH; usa random para gerar alturas entre 3-6 andares.
+; Parâmetros de saída: Nenhum. Preenche arrays tower_active, tower_x_pos e tower_heights; reseta tower_spawn_counter.
+;----------------------------------------------------------------
 init_fase3_towers proc near
     push ax
     push bx
@@ -1927,7 +2035,11 @@ init_tower_loop:
     ret
 init_fase3_towers endp
 
-; Atualiza posição das torres e gera novas
+;----------------------------------------------------------------
+; Função: Atualiza posição de todas as torres ativas, desativa as que saem da tela e spawna novas periodicamente.
+; Parâmetros de entrada: Arrays tower_active/tower_x_pos; tower_spawn_counter e tower_min_spacing controlam temporização de spawn.
+; Parâmetros de saída: Nenhum. Move torres 1 pixel à esquerda, desativa as que X < -40, e chama spawn_fase3_tower periodicamente.
+;----------------------------------------------------------------
 update_fase3_towers proc near
     push ax
     push bx
@@ -1983,7 +2095,11 @@ skip_spawn_tower:
     ret
 update_fase3_towers endp
 
-; Gera uma nova torre aleatória
+;----------------------------------------------------------------
+; Função: Cria nova torre aleatória em slot livre do array com posição X=320 e altura entre 2-9 andares.
+; Parâmetros de entrada: Arrays tower_active/tower_x_pos/tower_heights; usa random para gerar altura.
+; Parâmetros de saída: Nenhum. Ativa torre em slot vazio caso disponível; define X=320 e altura aleatória.
+;----------------------------------------------------------------
 spawn_fase3_tower proc near
     push ax
     push bx
@@ -2022,7 +2138,11 @@ spawn_done:
     ret
 spawn_fase3_tower endp
 
-; Renderiza todas as torres ativas
+;----------------------------------------------------------------
+; Função: Renderiza todas as torres ativas da fase 3 na tela em suas posições atuais.
+; Parâmetros de entrada: Arrays tower_active/tower_x_pos/tower_heights; chama render_tower para cada torre ativa.
+; Parâmetros de saída: Nenhum. Apenas delega renderização para render_tower.
+;----------------------------------------------------------------
 render_fase3_towers proc near
     push ax
     push bx
@@ -2068,8 +2188,11 @@ skip_render_tower:
     ret
 render_fase3_towers endp
 
-; Renderiza uma torre na posição especificada
-; CX = altura (andares), DX = posição X
+;----------------------------------------------------------------
+; Função: Renderiza uma torre individual com clipping horizontal, empilhando sprites base e topo.
+; Parâmetros de entrada: CX=altura em andares, DX=posição X; sprites base e topo (34x8 pixels); constantes BASE_WIDTH/BASE_HEIGHT/ROW_TERRAIN_FASE3.
+; Parâmetros de saída: Nenhum. Desenha torre na VRAM (0A000h) com clipping para torres parcialmente visíveis.
+;----------------------------------------------------------------
 render_tower proc near
     push ax
     push bx
@@ -2233,7 +2356,11 @@ tower_done:
     ret
 render_tower endp
 
-; Exibir tela de Game Over
+;----------------------------------------------------------------
+; Função: Exibe tela de Game Over com ASCII art vermelho, score final e aguarda pressionar tecla.
+; Parâmetros de entrada: Usa score, score_buffer e mensagens game_over_msg, final_score_msg, press_key_msg; assume modo 13h ativo.
+; Parâmetros de saída: Nenhum. Limpa tela, exibe mensagens via PRINT_STRING e aguarda input antes de retornar.
+;----------------------------------------------------------------
 exibir_game_over proc near
     push ax
     push bx
@@ -2311,7 +2438,11 @@ exibir_game_over proc near
     ret
 exibir_game_over endp
 
-; Exibir tela de vitória (formato scrambleBase)
+;----------------------------------------------------------------
+; Função: Exibe tela de vitória com ASCII art verde, score final e aguarda pressionar tecla.
+; Parâmetros de entrada: Usa score, score_buffer e mensagens vencedor_msg, final_score_msg, press_key_msg; assume modo 13h ativo.
+; Parâmetros de saída: Nenhum. Limpa tela, exibe mensagens via PRINT_STRING e aguarda input antes de retornar.
+;----------------------------------------------------------------
 exibir_vitoria proc near
     push ax
     push bx
@@ -2692,6 +2823,12 @@ delay_fase:
     jmp voltar_menu
 sem_colisao_jogador:
     
+    ; Fase 3: checar colisão com torres
+    cmp fase_atual, 3
+    jne sem_colisao_torres
+    call verifica_colisao_torres
+sem_colisao_torres:
+    
     ; Atualizar contador de tempo
     inc ticks_contador
     mov ax, ticks_contador
@@ -2753,10 +2890,14 @@ nao_esc:
     cmp ah, 50h     ; Seta baixo
     je nave_baixo
     cmp ah, 4Bh     ; Seta esquerda
-    je nave_esq
+    jne check_dir
+    jmp nave_esq
+check_dir:
     cmp ah, 4Dh     ; Seta direita
-    je nave_dir
+    jne continua_loop
+    jmp nave_dir
     
+continua_loop:
     jmp loop_fase
     
 nave_cima:
@@ -2775,7 +2916,21 @@ nave_cima:
 limite_cima_fase3:
     ; Fase 3: limite mais alto (linha 20) para dar espaço
     cmp ax, 20
-    jge cima_ok
+    jl cima_bloqueado
+    
+    ; Verifica colisão com torres na nova posição
+    push ax
+    mov dx, ax                      ; DX = nova Y
+    mov ax, nave_jogador_x          ; AX = X
+    mov cx, 29                      ; Largura da nave
+    mov si, 13                      ; Altura da nave
+    call check_tower_collision_at_pos
+    cmp ax, 1
+    pop ax
+    je cima_bloqueado
+    jmp cima_ok
+    
+cima_bloqueado:
     jmp loop_fase
     
 cima_ok:
@@ -2796,12 +2951,29 @@ nave_baixo:
     jmp verifica_limite_baixo
     
 limite_fase3:
-    ; Fase 3: limite fixo na linha 135 (antes das torres que começam em 150)
-    mov bx, 135
+    ; Fase 3: limite fixo na linha 150 (antes das torres que começam em 165)
+    mov bx, 150
+    cmp ax, bx
+    jg baixo_bloqueado
+    
+    ; Verifica colisão com torres na nova posição
+    push ax
+    mov dx, ax                      ; DX = nova Y
+    mov ax, nave_jogador_x          ; AX = X
+    mov cx, 29                      ; Largura da nave
+    mov si, 13                      ; Altura da nave
+    call check_tower_collision_at_pos
+    cmp ax, 1
+    pop ax
+    je baixo_bloqueado
+    jmp baixo_ok
     
 verifica_limite_baixo:
     cmp ax, bx
     jle baixo_ok
+    jmp loop_fase
+    
+baixo_bloqueado:
     jmp loop_fase
 baixo_ok:
     mov nave_jogador_y, ax
@@ -2811,7 +2983,24 @@ nave_esq:
     mov ax, nave_jogador_x
     sub ax, 3
     cmp ax, 0
-    jge esq_ok
+    jl esq_bloqueado
+    
+    ; Fase 3: verifica colisão com torres
+    cmp fase_atual, 3
+    jne esq_ok
+    
+    push ax
+    mov dx, nave_jogador_y          ; DX = Y atual
+    ; AX já tem nova X
+    mov cx, 29                      ; Largura da nave
+    mov si, 13                      ; Altura da nave
+    call check_tower_collision_at_pos
+    cmp ax, 1
+    pop ax
+    je esq_bloqueado
+    jmp esq_ok
+    
+esq_bloqueado:
     jmp loop_fase
 esq_ok:
     mov nave_jogador_x, ax
@@ -2821,7 +3010,24 @@ nave_dir:
     mov ax, nave_jogador_x
     add ax, 3
     cmp ax, 291         ; 320 - 29 = 291 (limite direito)
-    jle dir_ok
+    jg dir_bloqueado
+    
+    ; Fase 3: verifica colisão com torres
+    cmp fase_atual, 3
+    jne dir_ok
+    
+    push ax
+    mov dx, nave_jogador_y          ; DX = Y atual
+    ; AX já tem nova X
+    mov cx, 29                      ; Largura da nave
+    mov si, 13                      ; Altura da nave
+    call check_tower_collision_at_pos
+    cmp ax, 1
+    pop ax
+    je dir_bloqueado
+    jmp dir_ok
+    
+dir_bloqueado:
     jmp loop_fase
 dir_ok:
     mov nave_jogador_x, ax
@@ -2998,8 +3204,11 @@ desenha_tiros endp
 ; Parâmetros de entrada: Nenhum (execução inicial).
 ; Parâmetros de saída: Nenhum. O programa finaliza via int 21h/4Ch ao escolher Sair.
 ;----------------------------------------------------------------
-; Verifica condições de fim de jogo
-; Retorna: AL = 0 (continua), 1 (game over), 2 (vitória)
+;----------------------------------------------------------------
+; Função: Verifica condições de fim de jogo, retornando status baseado em vidas e fase atual.
+; Parâmetros de entrada: vidas (número de vidas restantes), fase_atual (fase em execução).
+; Parâmetros de saída: AL=0 (jogo continua), AL=1 (game over - vidas=0), AL=2 (vitória - fase_atual≥4).
+;----------------------------------------------------------------
 check_game_end proc near
     push bx
     
@@ -3027,6 +3236,11 @@ end_check:
     ret
 check_game_end endp
 
+;----------------------------------------------------------------
+; Função: Ponto de entrada do programa; configura modo de vídeo, desenha menu e gerencia seleção/fluxo do jogo.
+; Parâmetros de entrada: Nenhum (execução inicial).
+; Parâmetros de saída: Nenhum. O programa finaliza via int 21h/4Ch ao escolher Sair.
+;----------------------------------------------------------------
 main proc
     mov ax, @data
     mov ds, ax
