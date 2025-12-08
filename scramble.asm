@@ -194,9 +194,12 @@
     tower_render_width  dw 34           ; Largura a renderizar (com clipping)
     
     ; Constantes da fase 3
-    ROW_TERRAIN_FASE3 equ 150           ; Linha onde começa o terreno
+    ROW_TERRAIN_FASE3 equ 165           ; Linha onde começa o terreno (mais baixo para facilitar)
     BASE_WIDTH  equ 34                  ; Largura de um andar (em pixels)
     BASE_HEIGHT equ 8                   ; Altura de um andar (em pixels)
+    
+    ; Variável temporária para cálculos
+    temp_word dw 0
     
     ; Sprite da base das torres (34x8 pixels por andar)
     base    db 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 0, 0
@@ -1386,14 +1389,53 @@ slot_alien_livre:
     ; BX contém o índice do slot livre (0-4)
     push bx
     
-    ; Gera Y aleatório entre 20-130 (área segura abaixo do HUD)
+    ; Verifica fase para definir range de Y
+    cmp fase_atual, 3
+    je spawn_y_fase3
+    
+    ; Fases 1 e 2: Y entre 20-130
     call random
     xor dx, dx
     mov cx, 110         ; Divisor (130-20=110)
     div cx              ; DX = resto (0-109)
     mov ax, dx
     add ax, 20          ; Y entre 20-129
+    jmp spawn_calc_pos
     
+spawn_y_fase3:
+    ; Fase 3: Y entre 30-120 (acima das torres que começam em 150)
+    ; Tenta até 10 vezes encontrar posição sem colisão
+    mov di, 10                      ; Contador de tentativas
+    
+spawn_retry_y_fase3:
+    call random
+    xor dx, dx
+    mov cx, 90          ; Divisor (120-30=90)
+    div cx              ; DX = resto (0-89)
+    mov ax, dx
+    add ax, 30          ; Y entre 30-119
+    
+    ; Verifica se essa posição colidiria com torres
+    push ax
+    push di
+    mov dx, ax                      ; DX = Y proposto
+    mov ax, 298                     ; AX = X (posição de spawn)
+    mov cx, 29                      ; Largura do alien (mesmo que nave)
+    mov si, 13                      ; Altura do alien
+    call check_tower_collision_at_pos
+    pop di
+    cmp ax, 1
+    pop ax
+    jne spawn_calc_pos              ; Sem colisão, prosseguir
+    
+    ; Colisão detectada, tentar novamente
+    dec di
+    jnz spawn_retry_y_fase3
+    
+    ; Após 10 tentativas, usar Y padrão seguro (50)
+    mov ax, 50
+    
+spawn_calc_pos:
     ; Calcula posição linear: Y*320 + X
     ; X = 298 (320-22=298, garante sprite visível no lado direito)
     mov cx, 320
@@ -1691,8 +1733,10 @@ loop_colisao:
     ; Verifica eixo Y
     mov ax, dx              ; inimigo_y
     add ax, di              ; inimigo_y + altura
+    push si                 ; Salva índice
     mov si, nave_jogador_y
     cmp si, ax
+    pop si                  ; Restaura índice
     jge proximo_inimigo
 
     mov ax, nave_jogador_y
@@ -1701,22 +1745,43 @@ loop_colisao:
     jge proximo_inimigo
 
     ; Colisao detectada
+    push si                 ; Salva índice antes de usar
     cmp byte ptr vidas, 0
     je salva_estado
-    dec vidas
+    dec vidas             ; DESABILITADO: sem dano
     call apaga_vidas_display
     call desenhar_vidas
 salva_estado:
+    pop si                  ; Restaura índice
     mov byte ptr alien_array_active[si], 0
     mov nave_jogador_x, 40
-    mov nave_jogador_y, 80
+    
+    ; Reseta Y baseado na fase
+    cmp fase_atual, 3
+    jne reset_y_normal
+    mov nave_jogador_y, 50  ; Fase 3: Y=50
+    jmp reset_y_done
+reset_y_normal:
+    mov nave_jogador_y, 80  ; Fases 1 e 2: Y=80
+reset_y_done:
     mov ax, 1               ; flag de colisao
     jmp fim_colisao
 
 proximo_inimigo:
     inc si
-    loop loop_colisao
+    dec cx
+    jz sem_colisao_aliens
+    jmp loop_colisao
+    
+sem_colisao_aliens:
     xor ax, ax              ; Nenhuma colisao
+    
+    ; Verifica colisão com torres (apenas fase 3)
+    cmp fase_atual, 3
+    jne fim_colisao
+    call verifica_colisao_torres
+    cmp ax, 1
+    je fim_colisao          ; Se colidiu com torre, AX já está = 1
 
 fim_colisao:
     pop bp
@@ -1727,6 +1792,225 @@ fim_colisao:
     pop bx
     ret
 checa_colisao_jogador endp
+
+;----------------------------------------------------------------
+; Função: Verifica colisão da nave do jogador com torres da fase 3
+; Parâmetros de entrada: nave_jogador_x, nave_jogador_y, tower_active, tower_x_pos, tower_heights
+; Parâmetros de saída: AX = 1 se houve colisão, 0 caso contrário
+;----------------------------------------------------------------
+verifica_colisao_torres proc near
+    push bx
+    push cx
+    push dx
+    push si
+    push di
+    
+    ; Coordenadas da nave (canto superior esquerdo)
+    mov ax, nave_jogador_x      ; nave_x
+    mov dx, nave_jogador_y      ; nave_y
+    
+    ; Dimensões da nave: 29 (largura) x 13 (altura)
+    ; Área de colisão: X até X+29, Y até Y+13
+    
+    ; Loop por todas as torres
+    mov cx, MAX_TOWERS
+    xor bx, bx
+    
+loop_torres_colisao:
+    ; Verifica se torre está ativa
+    cmp byte ptr tower_active[bx], 0
+    je proxima_torre_colisao
+    
+    ; Pega posição X da torre
+    shl bx, 1                   ; BX *= 2 para word array
+    mov si, word ptr tower_x_pos[bx]
+    shr bx, 1                   ; BX /= 2 volta para byte array
+    
+    ; Pega altura da torre (número de andares)
+    mov al, byte ptr tower_heights[bx]
+    xor ah, ah
+    
+    ; Calcula limites da torre
+    ; Torre: X_torre até X_torre+34, Y desde (185 - altura*8) até Y=200
+    ; BASE_WIDTH = 34, BASE_HEIGHT = 8
+    
+    ; Limite direito da torre: X_torre + 34
+    mov di, si
+    add di, 34
+    
+    ; Verifica colisão no eixo X
+    ; nave_x + 29 >= torre_x E nave_x <= torre_x + 34
+    mov word ptr temp_word, ax  ; Salva altura temporariamente
+    
+    mov ax, nave_jogador_x
+    add ax, 29                  ; nave_direita
+    cmp ax, si                  ; nave_direita >= torre_esq?
+    jl proxima_torre_colisao
+    
+    mov ax, nave_jogador_x      ; nave_esq
+    cmp ax, di                  ; nave_esq <= torre_dir?
+    jg proxima_torre_colisao
+    
+    ; Há sobreposição em X, verifica Y
+    mov ax, word ptr temp_word  ; Recupera altura
+    
+    ; Y_topo_torre = 185 - (altura * 8)
+    mov cx, 8
+    mul cx                      ; AX = altura * 8
+    mov di, 185
+    sub di, ax                  ; DI = Y_topo_torre
+    
+    ; Verifica colisão no eixo Y
+    ; nave_y + 13 > torre_topo E nave_y < 200
+    mov ax, nave_jogador_y
+    add ax, 13                  ; nave_baixo
+    cmp ax, di                  ; nave_baixo > torre_topo?
+    jle proxima_torre_colisao
+    
+    ; Verifica se nave está abaixo do topo da torre
+    mov ax, nave_jogador_y
+    cmp ax, di                  ; nave_y < torre_topo?
+    jl proxima_torre_colisao    ; Se nave está completamente acima, sem colisão
+    
+    ; Colisão detectada!
+    cmp byte ptr vidas, 0
+    je torre_salva_estado
+    dec vidas             ; DESABILITADO: sem dano
+    call apaga_vidas_display
+    call desenhar_vidas
+    
+torre_salva_estado:
+    mov nave_jogador_x, 40
+    mov nave_jogador_y, 50      ; Fase 3: volta para Y=50
+    mov ax, 1                   ; Flag de colisão
+    jmp fim_torres_colisao
+    
+proxima_torre_colisao:
+    inc bx
+    loop loop_torres_colisao
+    
+    xor ax, ax                  ; Nenhuma colisão
+    
+fim_torres_colisao:
+    pop di
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    ret
+verifica_colisao_torres endp
+
+;----------------------------------------------------------------
+; Função: Verifica se uma posição arbitrária colide com torres da fase 3
+; Entrada: AX = X, DX = Y, CX = largura, SI = altura
+; Saída: AX = 1 se colidiu, 0 caso contrário
+;----------------------------------------------------------------
+check_tower_collision_at_pos proc near
+    push bx
+    push cx
+    push dx
+    push si
+    push di
+    push bp
+    
+    ; Salva parâmetros
+    mov word ptr temp_word, ax      ; X
+    mov bp, dx                      ; Y
+    ; CX já tem largura
+    ; SI já tem altura
+    
+    ; Loop por todas as torres
+    mov dx, MAX_TOWERS
+    xor bx, bx
+    
+loop_check_towers:
+    ; Verifica se torre está ativa
+    cmp byte ptr tower_active[bx], 0
+    je proxima_check_torre
+    
+    ; Pega posição X da torre
+    push bx
+    shl bx, 1                       ; BX *= 2 para word array
+    mov di, word ptr tower_x_pos[bx]
+    pop bx
+    
+    ; Pega altura da torre (número de andares)
+    mov al, byte ptr tower_heights[bx]
+    xor ah, ah
+    
+    ; Calcula limites da torre
+    ; Torre X: di até di+34
+    ; Torre Y: (185 - altura*8) até 200
+    
+    ; Limite direito da torre: X_torre + 34
+    push ax
+    mov ax, di
+    add ax, 34
+    push ax                         ; Salva X_torre_dir
+    
+    ; Verifica colisão no eixo X
+    ; objeto_x + largura > torre_x E objeto_x < torre_x + 34
+    mov ax, word ptr temp_word      ; objeto_x
+    add ax, cx                      ; objeto_x + largura
+    cmp ax, di                      ; > torre_x?
+    jle sem_colisao_x_check
+    
+    mov ax, word ptr temp_word      ; objeto_x
+    pop di                          ; Recupera X_torre_dir
+    cmp ax, di                      ; < torre_x_dir?
+    jge sem_colisao_x_check_2
+    
+    ; Há sobreposição em X, verifica Y
+    pop ax                          ; Recupera altura da torre
+    
+    ; Y_topo_torre = 185 - (altura * 8)
+    push dx
+    mov dx, 8
+    mul dx                          ; AX = altura * 8
+    mov di, 185
+    sub di, ax                      ; DI = Y_topo_torre
+    pop dx
+    
+    ; Verifica colisão no eixo Y
+    ; objeto_y + altura > torre_topo E objeto_y < 200
+    mov ax, bp                      ; objeto_y
+    add ax, si                      ; objeto_y + altura
+    cmp ax, di                      ; > torre_topo?
+    jle sem_colisao_y_check
+    
+    mov ax, bp                      ; objeto_y
+    cmp ax, 200                     ; < 200?
+    jge sem_colisao_y_check
+    
+    ; Colisão detectada!
+    mov ax, 1
+    jmp fim_check_towers
+    
+sem_colisao_x_check:
+    pop di                          ; Remove X_torre_dir
+sem_colisao_x_check_2:
+    pop ax                          ; Remove altura
+    jmp proxima_check_torre
+    
+sem_colisao_y_check:
+    jmp proxima_check_torre
+    
+proxima_check_torre:
+    inc bx
+    dec dx
+    jnz loop_check_towers
+    
+    xor ax, ax                      ; Nenhuma colisão
+    
+fim_check_towers:
+    pop bp
+    pop di
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    ret
+check_tower_collision_at_pos endp
 
 ;----------------------------------------------------------------
 ; Função: Exibe tela de vitória com score final e aguarda pressionar uma tecla.
@@ -2318,10 +2602,20 @@ limpar_aliens_init:
     ; Reset timer de spawn
     mov alien_spawn_timer, 0
     
-    ; Se é fase 3, inicializa sistema de torres
+    ; Ajusta posição inicial da nave baseado na fase
+    mov nave_jogador_x, 40
     cmp fase_atual, 3
-    jne skip_init_towers
+    jne skip_fase3_setup
+    
+    ; Fase 3: nave começa mais alto
+    mov nave_jogador_y, 50
     call init_fase3_towers
+    jmp skip_init_towers
+    
+skip_fase3_setup:
+    ; Fases 1 e 2: nave começa em Y=80
+    mov nave_jogador_y, 80
+    
 skip_init_towers:
     
 loop_fase:
@@ -2538,6 +2832,12 @@ delay_fase:
     jmp voltar_menu
 sem_colisao_jogador:
     
+    ; Fase 3: checar colisão com torres
+    cmp fase_atual, 3
+    jne sem_colisao_torres
+    call verifica_colisao_torres
+sem_colisao_torres:
+    
     ; Atualizar contador de tempo
     inc ticks_contador
     mov ax, ticks_contador
@@ -2599,18 +2899,49 @@ nao_esc:
     cmp ah, 50h     ; Seta baixo
     je nave_baixo
     cmp ah, 4Bh     ; Seta esquerda
-    je nave_esq
+    jne check_dir
+    jmp nave_esq
+check_dir:
     cmp ah, 4Dh     ; Seta direita
-    je nave_dir
+    jne continua_loop
+    jmp nave_dir
     
+continua_loop:
     jmp loop_fase
     
 nave_cima:
     mov ax, nave_jogador_y
     sub ax, 3
-    cmp ax, 10      ; Limite superior (após status)
+    
+    ; Verifica fase atual para definir limite correto
+    cmp fase_atual, 3
+    je limite_cima_fase3
+    
+    ; Fases 1 e 2: limite após o HUD (linha 10)
+    cmp ax, 10
     jge cima_ok
     jmp loop_fase
+    
+limite_cima_fase3:
+    ; Fase 3: limite mais alto (linha 20) para dar espaço
+    cmp ax, 20
+    jl cima_bloqueado
+    
+    ; Verifica colisão com torres na nova posição
+    push ax
+    mov dx, ax                      ; DX = nova Y
+    mov ax, nave_jogador_x          ; AX = X
+    mov cx, 29                      ; Largura da nave
+    mov si, 13                      ; Altura da nave
+    call check_tower_collision_at_pos
+    cmp ax, 1
+    pop ax
+    je cima_bloqueado
+    jmp cima_ok
+    
+cima_bloqueado:
+    jmp loop_fase
+    
 cima_ok:
     mov nave_jogador_y, ax
     jmp loop_fase
@@ -2618,10 +2949,40 @@ cima_ok:
 nave_baixo:
     mov ax, nave_jogador_y
     add ax, 3
+    
+    ; Verifica fase atual para definir limite correto
+    cmp fase_atual, 3
+    je limite_fase3
+    
+    ; Fases 1 e 2: usa superficie_y
     mov bx, superficie_y
     sub bx, 13      ; Limite antes da superfície (altura da nave = 13)
+    jmp verifica_limite_baixo
+    
+limite_fase3:
+    ; Fase 3: limite fixo na linha 150 (antes das torres que começam em 165)
+    mov bx, 150
+    cmp ax, bx
+    jg baixo_bloqueado
+    
+    ; Verifica colisão com torres na nova posição
+    push ax
+    mov dx, ax                      ; DX = nova Y
+    mov ax, nave_jogador_x          ; AX = X
+    mov cx, 29                      ; Largura da nave
+    mov si, 13                      ; Altura da nave
+    call check_tower_collision_at_pos
+    cmp ax, 1
+    pop ax
+    je baixo_bloqueado
+    jmp baixo_ok
+    
+verifica_limite_baixo:
     cmp ax, bx
     jle baixo_ok
+    jmp loop_fase
+    
+baixo_bloqueado:
     jmp loop_fase
 baixo_ok:
     mov nave_jogador_y, ax
@@ -2631,7 +2992,24 @@ nave_esq:
     mov ax, nave_jogador_x
     sub ax, 3
     cmp ax, 0
-    jge esq_ok
+    jl esq_bloqueado
+    
+    ; Fase 3: verifica colisão com torres
+    cmp fase_atual, 3
+    jne esq_ok
+    
+    push ax
+    mov dx, nave_jogador_y          ; DX = Y atual
+    ; AX já tem nova X
+    mov cx, 29                      ; Largura da nave
+    mov si, 13                      ; Altura da nave
+    call check_tower_collision_at_pos
+    cmp ax, 1
+    pop ax
+    je esq_bloqueado
+    jmp esq_ok
+    
+esq_bloqueado:
     jmp loop_fase
 esq_ok:
     mov nave_jogador_x, ax
@@ -2641,7 +3019,24 @@ nave_dir:
     mov ax, nave_jogador_x
     add ax, 3
     cmp ax, 291         ; 320 - 29 = 291 (limite direito)
-    jle dir_ok
+    jg dir_bloqueado
+    
+    ; Fase 3: verifica colisão com torres
+    cmp fase_atual, 3
+    jne dir_ok
+    
+    push ax
+    mov dx, nave_jogador_y          ; DX = Y atual
+    ; AX já tem nova X
+    mov cx, 29                      ; Largura da nave
+    mov si, 13                      ; Altura da nave
+    call check_tower_collision_at_pos
+    cmp ax, 1
+    pop ax
+    je dir_bloqueado
+    jmp dir_ok
+    
+dir_bloqueado:
     jmp loop_fase
 dir_ok:
     mov nave_jogador_x, ax
@@ -2960,7 +3355,7 @@ iniciar_jogo:
     mov score, 0
     mov vidas, 3
     mov nave_jogador_x, 40
-    mov nave_jogador_y, 80
+    mov nave_jogador_y, 80    ; Fase 1 sempre começa em Y=80
     
     ; Limpar tiros
     mov cx, MAX_TIROS
